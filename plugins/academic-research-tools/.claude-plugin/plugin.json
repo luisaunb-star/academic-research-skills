@@ -3,7 +3,7 @@
   "description": "Hallucination-resistant academic literature search, journal credibility checking, and claim-level reference verification.",
   "version": "1.0.0",
   "author": {
-    "name": "<Luisa Veras de Sandes-Guimarães"
+    "name": "Luisa Veras de Sandes-Guimarães"
   },
   "license": "MIT",
   "keywords": ["academic", "research", "citations", "literature-review", "verification"]
