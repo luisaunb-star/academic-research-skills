@@ -1,0 +1,15 @@
+{
+  "name": "academic-research-skills",
+  "owner": {
+    "name": "Luisa Veras de Sandes-Guimarães"
+  },
+  "description": "Skills for hallucination-resistant academic literature search, journal quality checking, and claim-level reference verification.",
+  "plugins": [
+    {
+      "name": "academic-research-tools",
+      "source": "./plugins/academic-research-tools",
+      "description": "Verified paper search, journal quality check, and scientific reference reviewer skills, bundled together.",
+      "version": "1.0.0"
+    }
+  ]
+}
