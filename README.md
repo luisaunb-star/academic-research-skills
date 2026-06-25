@@ -17,7 +17,7 @@ All three ship together as one plugin, `academic-research-tools`, so one install
 This repo is set up as a Claude Code [plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces), so installing — and later updating — is two commands, run inside a Claude Code session:
 
 ```
-/plugin marketplace add <your-github-username>/academic-research-skills
+/plugin marketplace add luisaunb-star/academic-research-skills
 /plugin install academic-research-tools@academic-research-skills
 ```
 
@@ -41,7 +41,7 @@ If you'd rather not use the plugin system, the skills are plain folders and work
 - **Project** — lives in one repo, shareable with your team via git: `<your-project>/.claude/skills/`
 
 ```bash
-git clone https://github.com/<your-github-username>/academic-research-skills.git
+git clone https://github.com/luisaunb-star/academic-research-skills.git
 mkdir -p ~/.claude/skills
 
 cp -r academic-research-skills/plugins/academic-research-tools/skills/verified-paper-search        ~/.claude/skills/
