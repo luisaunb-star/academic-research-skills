@@ -44,15 +44,47 @@ Before analyzing the texts or writing the synthesis, you must prompt the user to
 
 ### Stage 1 — Corpus Overview (AI-Generated, Read-Only)
 
-Do not ask the user for themes yet. If the user sets the thematic agenda before seeing what the corpus actually contains, they risk anchoring on preconceptions. 
+Do not ask the user for themes yet. If the user sets the thematic agenda before seeing what the corpus actually contains, they risk anchoring on preconceptions.
 
-1. Read all provided texts (and the previous synthesis, if provided).
-2. Produce a structured overview for the user:
-   - Total number of studies and data types (full text vs. abstract only).
-   - Distribution of study designs and methodologies.
-   - Geographic/contextual distribution.
-   - Most frequently addressed concepts and theoretical frameworks.
-   - *If applicable:* Explicitly note where the full texts contradict or complicate the abstract-based synthesis from the previous step.
+#### 1a. Reading PDF Full Texts (CRITICAL: Split Before Reading)
+
+If the user has provided PDF files, you **MUST NOT read any PDF in full**. Reading a full PDF will either crash the session with an unrecoverable context-window error or produce shallow, hallucinated output. There are no exceptions.
+
+For every PDF provided, follow this protocol before extracting any content:
+
+1. **Verify the file** exists at the provided path.
+2. **Copy it** to `/home/ubuntu/articles/` if it is not already there (do not move or delete the original).
+3. **Split it** into 4-page chunks using the split-pdf script:
+   ```bash
+   mkdir -p /home/ubuntu/articles/split_<pdf_name>
+   python3 /home/ubuntu/skills/split-pdf/scripts/split_pdf.py \
+     /home/ubuntu/articles/<pdf_name>.pdf \
+     /home/ubuntu/articles/split_<pdf_name>
+   ```
+   If PyPDF2 is not installed, run `sudo pip3 install PyPDF2` first.
+4. **Read exactly 3 split files at a time** (~12 pages per batch) using the `file` tool.
+5. **After each batch**, update a running `notes.md` file inside the split subdirectory with the following structured dimensions:
+   - Research question and purpose
+   - Methodology and study design
+   - Data sources, sample, time period
+   - Key findings and results
+   - Theoretical frameworks referenced
+   - Geographic/contextual scope
+6. **Pause after each batch** and confirm with the user before reading the next 3 splits.
+
+**Exception:** Papers shorter than approximately 15 pages may be read directly without splitting.
+
+Once all PDFs have been read in batches and notes are complete, proceed to the corpus overview.
+
+#### 1b. Corpus Overview
+
+Using the extracted notes (from split-pdf batches) and any abstracts or prior synthesis provided, produce a structured overview for the user:
+
+- Total number of studies and data types (full text vs. abstract only).
+- Distribution of study designs and methodologies.
+- Geographic/contextual distribution.
+- Most frequently addressed concepts and theoretical frameworks.
+- *If applicable:* Explicitly note where the full texts contradict or complicate the abstract-based synthesis from the previous step.
 
 **🛑 STOP: Present this overview to the user. This is purely informational.**
 
