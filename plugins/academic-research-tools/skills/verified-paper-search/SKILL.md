@@ -81,7 +81,15 @@ Once the protocol is approved, translate the research question into an explicit 
 - **Semantic Scholar:** Use for semantic/embedding matching rather than strict Boolean.
 - **Google Scholar / Web Search:** Use for free-text search, recent preprints, or grey literature.
 
-Document all search strings and the number of papers retrieved for the audit trail.
+**Present all drafted Boolean strings to the user in a structured table before executing any search.** For each database, show the exact query string, the rationale for key term choices, and any synonyms or wildcards applied. Ask the user to confirm, adjust, or reject each string.
+
+| Database | Boolean Query String | Key Term Rationale |
+|---|---|---|
+| OpenAlex | `("societal impact" OR "social impact") AND (universit* OR "higher education")` | Covers main concept variants and institutional synonyms |
+| Semantic Scholar | `societal impact university evaluation` | Semantic matching; less strict syntax needed |
+| Google Scholar | `"third mission" OR "knowledge transfer" AND university impact` | Captures grey literature and recent preprints |
+
+**🛑 STOP: Present the Boolean strings to the user and wait for explicit approval (or requested adjustments) before executing any search. Document the final approved strings in the audit trail.**
 
 ### Step 4 — Search, Verify, and Assess Quality
 
