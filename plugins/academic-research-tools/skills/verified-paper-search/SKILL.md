@@ -152,6 +152,9 @@ Default to a **Markdown file** unless the user requests a Word document (use the
 - [Coverage gaps, methodological limitations of the review, papers that couldn't be fully verified or accessed]
 ```
 
+## Next Steps in Pipeline
+- **`deep-academic-synthesis`** — If the user has full texts available and wants to move from abstract-level mapping to deep, section-by-section academic synthesis, transition to this skill.
+
 ## See Also
 - `references/risk_checklist.md` for hallucination failure modes.
 - `references/search_apis.md` for OpenAlex/Semantic Scholar commands.
