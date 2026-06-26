@@ -11,7 +11,40 @@ Language models are fluent enough to generate citations that look completely rea
 
 ## Workflow
 
-### Step 1 — Diagnose Risk & Draft Review Protocol (User Approval Required)
+### Step 1 — Select Review Typology (User Selection Required)
+
+Before initiating any literature search or drafting a protocol, you must explicitly ask the user to select the type of review to be conducted. This decision dictates the inclusion criteria, search exhaustiveness, quality appraisal requirements, and synthesis methods.
+
+Present the following options to the user, grounded in academic literature (e.g., Paré et al., 2015; Whittemore & Knafl, 2005; Pawson et al., 2005), and explain the methodological differences:
+
+**1. Systematic Review**
+* **Goal:** To aggregate, critically appraise, and synthesize all empirical evidence that meets pre-specified eligibility criteria to answer a narrow, clearly formulated research question.
+* **Methodology:** Requires exhaustive literature search, strict *a priori* inclusion/exclusion criteria, and formal quality/risk-of-bias assessment using validated instruments.
+* **Synthesis:** Quantitative (meta-analysis) or qualitative (narrative synthesis, vote counting).
+
+**2. Scoping Review**
+* **Goal:** To provide an initial indication of the potential size and scope of extant literature, identify knowledge gaps, or determine the value of undertaking a full systematic review.
+* **Methodology:** Comprehensive search using an iterative process. Uses explicit inclusion/exclusion criteria but typically **does not require** formal quality or risk-of-bias assessment.
+* **Synthesis:** Tabular or graphical mapping of the extent, nature, and distribution of studies, accompanied by a narrative summary.
+
+**3. Integrative Review**
+* **Goal:** To summarize past empirical and theoretical literature to provide a more comprehensive understanding of a particular phenomenon. Allows simultaneous inclusion of diverse methodologies (experimental and non-experimental).
+* **Methodology:** Comprehensive search with a specific focus. Quality appraisal is complex due to diverse sources and may require different instruments for different study designs.
+* **Synthesis:** Data reduction, display, comparison, and conclusion drawing, often using qualitative data analysis methods.
+
+**4. Realist-Informed Synthesis (Realist Review)**
+* **Goal:** To unpack the mechanisms of how complex programs or interventions work (or why they fail) in particular contexts. Answers: "What works, for whom, under what circumstances?"
+* **Methodology:** Theory-driven and interpretative. Search and appraisal are purposive and iterative, aiming for theoretical saturation. Quality is judged by relevance and rigor to theory building.
+* **Synthesis:** Focuses on identifying and explaining Context-Mechanism-Outcome (CMO) configurations.
+
+**5. Critical Review**
+* **Goal:** To provide a critical evaluation and interpretive analysis of existing literature to reveal strengths, weaknesses, contradictions, controversies, or inconsistencies.
+* **Methodology:** Seeks a representative (rather than exhaustive) sample. Typically does not require formal quality assessment of primary studies, focusing instead on conceptual contribution.
+* **Synthesis:** Narrative, often conceptual or chronological, aiming to derive new theory or hypothesis.
+
+**🛑 STOP: Present this typology to the user. Do not proceed until the user explicitly selects a review type. The selected type will govern the rules for the Draft Review Protocol in Step 2.**
+
+### Step 2 — Diagnose Risk & Draft Review Protocol (User Approval Required)
 
 Before searching, you must establish a rigorous framework for the review. Do not jump straight to executing searches.
 
@@ -20,13 +53,11 @@ Before searching, you must establish a rigorous framework for the review. Do not
 - **Terminology overlap:** Do terms mean different things in different fields (e.g., "agile" in management vs. engineering)?
 
 **2. Draft the Review Protocol:**
-Based on the user's topic, draft a working protocol for a **systematic mapping + realist-informed synthesis**. Present this protocol to the user and **ask for approval** before proceeding.
+Based on the user's topic and the **selected review typology** from Step 1, draft a working protocol. Present this protocol to the user and **ask for approval** before proceeding.
 
-The draft protocol must include:
+The draft protocol must align with the chosen typology and include:
 - **Review Purpose & Question:** Clarified using PICOTS (Population, Intervention, Context, Outcome, Time, Study design) or SPIDER framework.
-- **Review Design:** 
-  - *Stage 1: Systematic mapping* (What evidence exists? Which contexts? What formats?)
-  - *Stage 2: Realist-informed synthesis* (What works, for whom, in which contexts, through which mechanisms, with what outcomes?)
+- **Review Design:** Tailored to the selected typology (e.g., if Scopus Review, focus on mapping; if Realist, focus on CMO configurations).
 - **Corpus Boundary:** Databases to search, date ranges, language restrictions.
 - **Unit of Analysis:** The paper, or specific claims/passages within the paper.
 - **Extraction Fields:** Define what will be extracted (e.g., year, country, paper type, evaluation format, indicator approach, context, mechanism, outcome, evidence strength).
@@ -34,7 +65,7 @@ The draft protocol must include:
 
 **🛑 STOP: Present the draft protocol and wait for user approval before continuing.**
 
-### Step 2 — Decompose & Optimize the Boolean Search Strategy
+### Step 3 — Decompose & Optimize the Boolean Search Strategy
 
 Once the protocol is approved, translate the research question into an explicit Boolean search strategy. 
 
@@ -52,7 +83,7 @@ Once the protocol is approved, translate the research question into an explicit 
 
 Document all search strings and the number of papers retrieved for the audit trail.
 
-### Step 3 — Search, Verify, and Assess Quality
+### Step 4 — Search, Verify, and Assess Quality
 
 Retrieve the papers and verify them before inclusion. Do not put a citation in the output that wasn't surfaced by a search performed *this turn*.
 
@@ -66,7 +97,7 @@ Retrieve the papers and verify them before inclusion. Do not put a citation in t
    - Flag predatory warning signs (rapid publication volume, single-editor review, no ethics code).
    - *Note: Venue credibility affects the weight of evidence, but is distinct from the individual paper's quality.*
 
-### Step 4 — RAG-Based Integrative Synthesis
+### Step 5 — RAG-Based Synthesis
 
 Conduct the synthesis using only the verified, high-relevance papers. Follow strict RAG (Retrieval-Augmented Generation) principles to avoid hallucination:
 
@@ -75,7 +106,7 @@ Conduct the synthesis using only the verified, high-relevance papers. Follow str
 - **Synthesis Structure:** Organize findings according to the approved protocol (e.g., thematic mapping, or Context-Mechanism-Outcome configurations for realist synthesis).
 - **Confidence Assessment:** Rate the strength of the synthesized findings (Strong = multiple full-text sources; Moderate = single full-text or multiple abstracts; Tentative = single abstract or conflicting findings).
 
-### Step 5 — Produce the Deliverable
+### Step 6 — Produce the Deliverable
 
 Default to a **Markdown file** unless the user requests a Word document (use the `docx` skill for Word). The deliverable must be structured as follows:
 
@@ -85,7 +116,7 @@ Default to a **Markdown file** unless the user requests a Word document (use the
 ## 1. Approved Review Protocol
 - **Review Question:** [PICOTS/SPIDER]
 - **Scope & Boundaries:** [Databases, dates, languages]
-- **Methodology:** Systematic mapping + realist-informed synthesis
+- **Methodology:** [The specific review typology selected by the user in Step 1]
 
 ## 2. Search Strategy & Execution
 - **Boolean Queries:** [List exact queries used per database]
@@ -99,17 +130,15 @@ Default to a **Markdown file** unless the user requests a Word document (use the
 | [Smith24] | Title... | 2024 | *Higher Ed* (Scopus-indexed) | High (3) | Included |
 | [Jones23] | Title... | 2023 | *Predatory J* (High Risk) | High (3) | Excluded (Quality) |
 
-## 4. Realist-Informed Synthesis
-*Synthesis of included papers based strictly on retrieved text.*
+## 4. Evidence Synthesis
+*Synthesis of included papers based strictly on retrieved text, structured according to the selected review typology (e.g., thematic summary for integrative review, CMO configurations for realist review, or gap mapping for scoping review).*
 
-### Theme / Mechanism 1: [Name]
-- **Context:** [Conditions under which this operates]
-- **Mechanism:** [How it works]
-- **Outcome:** [What it produces]
+### Theme / Mechanism / Finding 1: [Name]
+- **Details:** [Relevant details based on review type, e.g., Context/Mechanism/Outcome for realist, or Key Concept for integrative]
 - **Evidence Base:** [Synthesized narrative grounded in sources. E.g., "Smith (2024) found X based on full-text analysis, while Doe (2022) suggested Y in their abstract."]
 - **Evidence Strength:** [Strong / Moderate / Tentative] (Based on full-text availability and consensus)
 
-*(Repeat for other themes/mechanisms)*
+*(Repeat for other themes/findings)*
 
 ## 5. Notes & Limitations
 - [Coverage gaps, methodological limitations of the review, papers that couldn't be fully verified or accessed]
