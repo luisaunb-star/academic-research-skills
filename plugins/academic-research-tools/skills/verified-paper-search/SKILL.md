@@ -1,105 +1,122 @@
 ---
 name: verified-paper-search
-description: Find and verify academic literature for a topic or a specific claim/statement, in management, engineering, or other academic fields, while actively minimizing citation hallucination. Use when someone asks to "find papers on X," "what does the research say about X," wants a literature review or annotated bibliography, asks for citations to support an argument or thesis, hands over a claim/statistic to check against research, or asks to verify whether a paper or citation is real. Trigger even without academic phrasing — "is there evidence lean manufacturing improves morale" or "back this paragraph up with sources" both call for this. Especially important, and should trigger proactively, whenever the user will publish, submit, or cite further (theses, papers, grant applications, consulting reports) — uncaught fabricated citations are costly there.
+description: Find, verify, and synthesize academic literature for a topic or specific claim, actively minimizing citation hallucination through RAG principles. Use when someone asks to "find papers on X," wants a systematic/integrative literature review, needs a realist synthesis, or asks for citations to support an argument. This skill enforces a structured review protocol, teaches Boolean search strategy, ranks all sources by relevance, integrates journal quality assessment, and produces an evidence-grounded synthesis following systematic mapping and realist-informed synthesis best practices.
 ---
 
-# Verified Paper Search
+# Verified Paper Search & Integrative Synthesis
 
-## The problem this solves
+## The Problem This Solves
 
-Language models — including Claude — are fluent enough to generate citations that look completely real: plausible author names, real-sounding journals, correctly formatted DOIs, for papers that were never written. This isn't a quirk to patch out; it's a structural consequence of being trained to keep generating a plausible continuation rather than to stop and say "I don't actually know this." The risk is highest exactly where this skill operates: niche or cross-disciplinary topics (management + engineering crossover terms get fuzzy), and any time the user hands over a *claim* they want literature to confirm — confirming what someone already believes is the path of least resistance for a model, and citation fabrication and sycophancy are close cousins.
-
-This skill's job is to make every step that could introduce a fabricated or mismatched citation explicit and checkable, instead of producing a tidy-looking list pulled straight from memory.
+Language models are fluent enough to generate citations that look completely real for papers that were never written. This skill mitigates citation hallucination by making every step explicit, checkable, and grounded in retrieved evidence (Retrieval-Augmented Generation / RAG principles). Furthermore, it upgrades a simple "list of papers" into a structured **systematic mapping and realist-informed synthesis**, ensuring the final deliverable is methodologically rigorous, transparent, and aligned with academic review standards.
 
 ## Workflow
 
-### Step 1 — Diagnose the risk before searching
+### Step 1 — Diagnose Risk & Draft Review Protocol (User Approval Required)
 
-Quickly assess, and say so in the deliverable:
-- **Topic vs. claim.** Is the user asking to explore a topic ("find papers on X"), or asking you to validate a specific statement or statistic ("is it true that X improves Y by Z%")? Claim-validation is higher risk — see Step 5.
-- **Terminology overlap.** Management and engineering reuse the same words with different meanings ("optimization," "risk," "agile," "lean," "resilience," "system"). Pick the disambiguation explicitly rather than searching the ambiguous term as-is.
-- **Long-tail exposure.** Narrow sub-specialties, recent phenomena, or non-English-origin concepts have thinner real coverage — resist the pull to "fill in" a citation just because the topic feels like it deserves one.
-- **Recency.** If the user implies "recent" or "state of the art," prioritize finding actual publication dates rather than assuming currency.
+Before searching, you must establish a rigorous framework for the review. Do not jump straight to executing searches.
 
-### Step 2 — Decompose and optimize the query
+**1. Diagnose the Request:**
+- **Topic vs. claim:** Is the user exploring a topic or validating a specific statement?
+- **Terminology overlap:** Do terms mean different things in different fields (e.g., "agile" in management vs. engineering)?
 
-Don't run the user's phrasing verbatim. Turn it into 3–6 targeted sub-queries:
-- Split compound or multi-hop claims into atomic, separately checkable sub-claims (one search angle per sub-claim).
-- Add both the management-side and engineering-side synonyms for the same concept (e.g., "agile" → "agile software development," "agile manufacturing," "agile project management" — these are different literatures with different findings).
-- Where the user supplied a claim, write queries that could surface *disconfirming* evidence too, not only confirming evidence. A query like `"agile" "does not improve" delivery speed` is just as legitimate as the supportive one — searching only to confirm is how sycophantic citation-matching happens.
-- Prefer specific terms (named frameworks, theories, metrics) over generic phrasing — generic queries return generic, harder-to-verify results.
+**2. Draft the Review Protocol:**
+Based on the user's topic, draft a working protocol for a **systematic mapping + realist-informed synthesis**. Present this protocol to the user and **ask for approval** before proceeding.
 
-Show this query set in the deliverable. It's the main thing that makes the search auditable rather than a black box.
+The draft protocol must include:
+- **Review Purpose & Question:** Clarified using PICOTS (Population, Intervention, Context, Outcome, Time, Study design) or SPIDER framework.
+- **Review Design:** 
+  - *Stage 1: Systematic mapping* (What evidence exists? Which contexts? What formats?)
+  - *Stage 2: Realist-informed synthesis* (What works, for whom, in which contexts, through which mechanisms, with what outcomes?)
+- **Corpus Boundary:** Databases to search, date ranges, language restrictions.
+- **Unit of Analysis:** The paper, or specific claims/passages within the paper.
+- **Extraction Fields:** Define what will be extracted (e.g., year, country, paper type, evaluation format, indicator approach, context, mechanism, outcome, evidence strength).
+- **Quality & Rigor Approach:** Define how sources will be appraised (e.g., MMAT for empirical, RAMESES logic for realist evidence).
 
-### Step 3 — Search for real, with real tools
+**🛑 STOP: Present the draft protocol and wait for user approval before continuing.**
 
-Do not put a citation in the output that wasn't surfaced by a search performed *this turn*. If a paper comes to mind from training knowledge, treat it the same as an unverified tip from a stranger — worth searching for, not worth printing yet.
+### Step 2 — Decompose & Optimize the Boolean Search Strategy
 
-**Structured APIs first.** For each sub-query, try OpenAlex and/or Semantic Scholar before free-text web search — they return title/authors/venue/year/DOI as separate, directly comparable fields in one call, which is a stronger basis for the verification in Step 4 than parsing prose snippets. In Claude Code (network-enabled bash), call `scripts/lookup.py`; in environments where bash has no outbound network, hit the same endpoints with `web_fetch` instead. Either way, see `references/search_apis.md` for the exact commands/URLs.
+Once the protocol is approved, translate the research question into an explicit Boolean search strategy. 
 
-**Free-text search for the rest.** Use `web_search`/`web_fetch` for anything the structured APIs don't cover well: SciELO- and Redalyc-indexed regional/Portuguese-language work (neither has a real search API — see `references/search_apis.md`), very recent preprints, or sub-queries that genuinely need full-text context rather than metadata.
+**Teach and apply Boolean principles:**
+- **AND:** Narrows results (e.g., `"societal impact" AND university`).
+- **OR:** Broadens results with synonyms (e.g., `("societal impact" OR "social impact" OR "third mission")`).
+- **NOT:** Excludes off-target results (e.g., `university NOT clinical`).
+- **Phrase matching:** Use quotation marks for exact phrases.
+- **Wildcards:** Use asterisks for variations (e.g., `evaluat*`).
 
-Favor: Google Scholar, arXiv/SSRN, journal and publisher pages, university repositories, citation indices.
-Be wary of: SEO content-mill "best papers on X" listicles and sites that summarize papers without linking the original — these are themselves a common vector for secondhand hallucination (they can misattribute or invent details too).
+**Database-Specific Execution:**
+- **OpenAlex:** Use structured API with field-specific syntax (e.g., `title:("social impact") AND abstract:(university)`). Note: OpenAlex supports Boolean logic.
+- **Semantic Scholar:** Use for semantic/embedding matching rather than strict Boolean.
+- **Google Scholar / Web Search:** Use for free-text search, recent preprints, or grey literature.
 
-### Step 4 — Verify before listing
+Document all search strings and the number of papers retrieved for the audit trail.
 
-For every candidate, before it goes in the final list, confirm via a **second, independent source** (e.g., the publisher/DOI page plus a citation index, or two distinct search results) that:
-- Title, authors, venue, and year actually match each other. (A real author, paired with a real journal, but never paired *this way* in reality, is a classic fabrication pattern — each fact can be individually true while the combination is invented.)
-- The paper's actual subject matches why you're about to cite it — check the abstract or fetch the page, don't infer relevance from the title alone.
+### Step 3 — Search, Verify, and Assess Quality
 
-If a candidate can't be independently confirmed, don't present it with the same confidence as a verified one. Either drop it, or list it separately and explicitly as unverified (see the template in Step 6). A shorter, fully-verified list is the right output when that's what the evidence supports — padding the list to look thorough is worse than admitting the search came back thin.
+Retrieve the papers and verify them before inclusion. Do not put a citation in the output that wasn't surfaced by a search performed *this turn*.
 
-### Step 5 — If the user gave a claim, deliver a verdict, not just a pile of sources
+**1. Verify Reality:** Confirm via a second independent source (e.g., publisher page + citation index) that the title, authors, venue, and year actually match.
+**2. Assess Relevance:** Read the abstract/metadata to score topical relevance:
+   - **High (3):** Directly addresses research question; primary focus. (Candidate for synthesis)
+   - **Medium (2):** Indirectly addresses question; secondary focus. (Supporting context)
+   - **Low (1):** Tangentially related. (Exclude from synthesis)
+**3. Assess Journal Quality (Integrated):** Do not run a separate skill. Evaluate the venue's credibility immediately:
+   - Check indexing status (Scopus, Web of Science, SciELO, Redalyc, MEDLINE).
+   - Flag predatory warning signs (rapid publication volume, single-editor review, no ethics code).
+   - *Note: Venue credibility affects the weight of evidence, but is distinct from the individual paper's quality.*
 
-When the request was "is X true / does the research support X," state plainly whether the verified literature:
-- **Supports** the claim
-- **Contradicts** it
-- Is **mixed / inconclusive**
-- **Doesn't address it directly** (only adjacent or related findings exist)
+### Step 4 — RAG-Based Integrative Synthesis
 
-Resist defaulting to "yes, here's support for what you said" when the evidence doesn't actually back it that cleanly. It's fine, and often the correct outcome, to tell someone their stated figure or claim isn't well-supported by what you found.
+Conduct the synthesis using only the verified, high-relevance papers. Follow strict RAG (Retrieval-Augmented Generation) principles to avoid hallucination:
 
-### Step 6 — Produce the deliverable
+- **Grounding:** Every synthesized claim must be anchored to specific retrieved evidence. Never infer beyond what is explicitly stated in the sources.
+- **Evidence Tracking:** Explicitly distinguish whether a claim is supported by the **full-text**, the **abstract**, or just **metadata**. Full-text evidence carries higher weight.
+- **Synthesis Structure:** Organize findings according to the approved protocol (e.g., thematic mapping, or Context-Mechanism-Outcome configurations for realist synthesis).
+- **Confidence Assessment:** Rate the strength of the synthesized findings (Strong = multiple full-text sources; Moderate = single full-text or multiple abstracts; Tentative = single abstract or conflicting findings).
 
-Default to a **Markdown file** (lightweight, easy to read, easy to paste into a reference manager) unless the user has specifically asked for a Word document — in which case use the `docx` skill instead. Use this structure:
+### Step 5 — Produce the Deliverable
+
+Default to a **Markdown file** unless the user requests a Word document (use the `docx` skill for Word). The deliverable must be structured as follows:
 
 ```markdown
-# Literature Search: [topic or claim]
+# Integrative Literature Review: [Topic]
 
-## Search diagnosis
-- [risk factors identified — 1-3 bullets]
-- [disambiguation decisions made, if any]
+## 1. Approved Review Protocol
+- **Review Question:** [PICOTS/SPIDER]
+- **Scope & Boundaries:** [Databases, dates, languages]
+- **Methodology:** Systematic mapping + realist-informed synthesis
 
-## Optimized search queries
-1. ...
-2. ...
+## 2. Search Strategy & Execution
+- **Boolean Queries:** [List exact queries used per database]
+- **Execution Summary:** [Total retrieved, total verified, total excluded]
 
-## Verdict
-*(only if the user supplied a claim/statement)*
-**Supported / Contradicted / Mixed / Not directly addressed** — [2-3 sentence summary, pointing to which papers below support this]
+## 3. Systematic Mapping (All Retrieved Sources)
+*All sources sorted by relevance. Journal quality assessment is integrated here.*
 
-## Verified papers
-| # | Title | Authors | Year | Venue | How verified | Relevance |
-|---|-------|---------|------|-------|---------------|-----------|
+| Cite Key | Title & Authors | Year | Venue & Quality Assessment | Relevance Score | Inclusion Decision |
+|----------|-----------------|------|----------------------------|-----------------|--------------------|
+| [Smith24] | Title... | 2024 | *Higher Ed* (Scopus-indexed) | High (3) | Included |
+| [Jones23] | Title... | 2023 | *Predatory J* (High Risk) | High (3) | Excluded (Quality) |
 
-## Found but unverified
-*(omit this whole section if empty — don't pad it)*
-| # | Title (as found) | Source | Why unverified |
-|---|---|---|---|
+## 4. Realist-Informed Synthesis
+*Synthesis of included papers based strictly on retrieved text.*
 
-## Notes & limitations
-- [coverage gaps, paywalled sources you couldn't fully check, a suggestion to also check Scopus/Web of Science/EBSCO if the user has institutional access that this search doesn't]
+### Theme / Mechanism 1: [Name]
+- **Context:** [Conditions under which this operates]
+- **Mechanism:** [How it works]
+- **Outcome:** [What it produces]
+- **Evidence Base:** [Synthesized narrative grounded in sources. E.g., "Smith (2024) found X based on full-text analysis, while Doe (2022) suggested Y in their abstract."]
+- **Evidence Strength:** [Strong / Moderate / Tentative] (Based on full-text availability and consensus)
+
+*(Repeat for other themes/mechanisms)*
+
+## 5. Notes & Limitations
+- [Coverage gaps, methodological limitations of the review, papers that couldn't be fully verified or accessed]
 ```
 
-Keep paraphrased summaries of what each paper found to 2-3 sentences max, in your own words — never reproduce abstract text verbatim (copyright, and it also tends to smuggle in the source's own framing uncritically).
-
-## See also
-
-`references/risk_checklist.md` has the fuller picture of *why* these failure modes happen (exposure bias, knowledge shadowing, the confidence/abstention paradox, sycophancy as reward hacking). Read it if you want the mechanism behind a step above, or if the user asks why a particular safeguard matters.
-
-`references/search_apis.md` has the exact OpenAlex/Semantic Scholar commands and URLs referenced in Step 3.
-
-Two sibling skills handle jobs this one doesn't:
-- `journal-quality-check` — for assessing whether a specific venue is actually indexed/credible (Redalyc/Scopus/Web of Science), useful when a found paper's venue is unfamiliar and its weight as evidence is in question.
-- `scientific-reference-reviewer` — for a stricter, slower, claim-by-claim audit with literal anchor excerpts from specific sections — use that instead of (or after) this skill when the job is "prove this exact sentence is true," not "find me papers on this topic."
+## See Also
+- `references/risk_checklist.md` for hallucination failure modes.
+- `references/search_apis.md` for OpenAlex/Semantic Scholar commands.
+- `journal-quality-check` — For deep-dive criteria on specific indexers if a venue's status is highly contested.
+- `scientific-reference-reviewer` — For strict, claim-by-claim audits of specific sentences.
