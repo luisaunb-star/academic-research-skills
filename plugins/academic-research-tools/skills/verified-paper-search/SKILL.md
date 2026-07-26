@@ -93,6 +93,14 @@ To ensure structured, reproducible metadata that flows into downstream bibliomet
 
 Retrieve the papers via OpenAlex and rigorously filter them before inclusion.
 
+**0. Retrieval Exhaustiveness (CRITICAL — Do Not Apply Arbitrary Cutoffs):**
+You MUST retrieve and screen **all results** returned by each approved Boolean query, not a self-imposed top-N sample. Applying an arbitrary cutoff (e.g., "top 20") without the user's explicit instruction is a methodological error that makes the review non-reproducible and potentially biased toward the most prominent papers.
+
+- Retrieve the full result set for each query.
+- Report the **total number of records returned** by each query before screening begins.
+- If the total result set is very large (e.g., >200 records per query), **ask the user** whether to screen all records, apply additional filters (e.g., date range, document type, language), or set a retrieval limit. Document the user's decision in the audit trail.
+- Never silently cap retrieval. If you make any practical limit, it must be explicitly stated to the user and recorded in the Search Strategy section of the deliverable.
+
 **1. Assess Relevance:** Read the abstract/metadata to score topical relevance:
    - **High (3):** Directly addresses research question; primary focus. (Candidate for synthesis)
    - **Medium (2):** Indirectly addresses question; secondary focus. (Supporting context)
