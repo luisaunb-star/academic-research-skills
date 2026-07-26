@@ -76,34 +76,32 @@ Once the protocol is approved, translate the research question into an explicit 
 - **Phrase matching:** Use quotation marks for exact phrases.
 - **Wildcards:** Use asterisks for variations (e.g., `evaluat*`).
 
-**Database-Specific Execution:**
-- **OpenAlex:** Use structured API with field-specific syntax (e.g., `title:("social impact") AND abstract:(university)`). Note: OpenAlex supports Boolean logic.
-- **Semantic Scholar:** Use for semantic/embedding matching rather than strict Boolean.
-- **Google Scholar / Web Search:** Use for free-text search, recent preprints, or grey literature.
+**Execution Engine: OpenAlex API**
+To ensure structured, reproducible metadata that flows into downstream bibliometric tools, this skill exclusively uses the **OpenAlex API** for retrieval.
+- Use structured API with field-specific syntax (e.g., `title:("social impact") AND abstract:(university)`).
+- OpenAlex fully supports Boolean logic, wildcards, and exact phrase matching.
 
-**Present all drafted Boolean strings to the user in a structured table before executing any search.** For each database, show the exact query string, the rationale for key term choices, and any synonyms or wildcards applied. Ask the user to confirm, adjust, or reject each string.
+**Present the drafted Boolean strings to the user in a structured table before executing any search.** Show the exact query string, the rationale for key term choices, and any synonyms or wildcards applied. Ask the user to confirm, adjust, or reject each string.
 
 | Database | Boolean Query String | Key Term Rationale |
 |---|---|---|
 | OpenAlex | `("societal impact" OR "social impact") AND (universit* OR "higher education")` | Covers main concept variants and institutional synonyms |
-| Semantic Scholar | `societal impact university evaluation` | Semantic matching; less strict syntax needed |
-| Google Scholar | `"third mission" OR "knowledge transfer" AND university impact` | Captures grey literature and recent preprints |
 
 **🛑 STOP: Present the Boolean strings to the user and wait for explicit approval (or requested adjustments) before executing any search. Document the final approved strings in the audit trail.**
 
-### Step 4 — Search, Verify, and Assess Quality
+### Step 4 — Search, Filter, and Export
 
-Retrieve the papers and verify them before inclusion. Do not put a citation in the output that wasn't surfaced by a search performed *this turn*.
+Retrieve the papers via OpenAlex and rigorously filter them before inclusion.
 
-**1. Verify Reality:** Confirm via a second independent source (e.g., publisher page + citation index) that the title, authors, venue, and year actually match.
-**2. Assess Relevance:** Read the abstract/metadata to score topical relevance:
+**1. Assess Relevance:** Read the abstract/metadata to score topical relevance:
    - **High (3):** Directly addresses research question; primary focus. (Candidate for synthesis)
    - **Medium (2):** Indirectly addresses question; secondary focus. (Supporting context)
    - **Low (1):** Tangentially related. (Exclude from synthesis)
-**3. Assess Journal Quality (Integrated):** Do not run a separate skill. Evaluate the venue's credibility immediately:
+**2. Assess Journal Quality (Integrated):** Evaluate the venue's credibility immediately:
    - Check indexing status (Scopus, Web of Science, SciELO, Redalyc, MEDLINE).
    - Flag predatory warning signs (rapid publication volume, single-editor review, no ethics code).
-   - *Note: Venue credibility affects the weight of evidence, but is distinct from the individual paper's quality.*
+   - *Note: If a venue is deemed predatory or excessively low-quality, explicitly mark the paper as "Excluded (Quality)" in the mapping table, regardless of its topical relevance. If you ran `journal-quality-check` separately, apply those results here as additional exclusion criteria before exporting.*
+**3. Pipeline Export (CRITICAL):** Once the final list of included papers is determined, you **MUST save the raw OpenAlex JSON data** for those specific papers to a local file (e.g., `/home/ubuntu/articles/openalex_corpus.json`). This JSON file is the required input for `bibliometric-scientometric-analysis`.
 
 ### Step 5 — RAG-Based Synthesis
 
@@ -153,10 +151,11 @@ Default to a **Markdown file** unless the user requests a Word document (use the
 ```
 
 ## Next Steps in Pipeline
-- **`deep-academic-synthesis`** — If the user has full texts available and wants to move from abstract-level mapping to deep, section-by-section academic synthesis, transition to this skill.
+- **`bibliometric-scientometric-analysis`** — To generate visual science mapping, co-authorship networks, and citation trajectory plots using the OpenAlex JSON exported in Step 4.
+- **`deep-academic-synthesis`** — If the user has full texts available and wants to move from abstract-level mapping to deep, section-by-section academic synthesis.
 
 ## See Also
 - `references/risk_checklist.md` for hallucination failure modes.
-- `references/search_apis.md` for OpenAlex/Semantic Scholar commands.
+- `references/search_apis.md` for OpenAlex API commands.
 - `journal-quality-check` — For deep-dive criteria on specific indexers if a venue's status is highly contested.
 - `scientific-reference-reviewer` — For strict, claim-by-claim audits of specific sentences.
