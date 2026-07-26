@@ -32,7 +32,9 @@ Before analyzing the texts or writing the synthesis, you must prompt the user to
 
 1. **Pipeline Connection:** 
    - Do you have an existing AI-generated synthesis (e.g., from `verified-paper-search`) that I should use as a starting point?
-   - Do you have full texts available for any of the included papers, or are we working from abstracts only?
+   - **Do you have full PDF files for the included papers, or only abstracts/metadata?** This determines the reading mode:
+     - **Mode A (Abstract-Only):** You have only abstracts or the mapping table from `verified-paper-search`. The synthesis will be grounded in abstract-level evidence. Every claim will be tagged `[Abstract only]` and this limitation will be disclosed in the deliverable.
+     - **Mode B (Full-Text):** You have PDF files for some or all papers. The synthesis will be grounded in full-text evidence, read in 4-page batches to avoid context-window errors.
    - Should I treat the existing synthesis as a draft to be deepened, or as a reference to be critically compared against what the full texts actually say? (Often, full texts reveal nuances or limitations concealed by abstracts).
 2. **Review Type:** What is the overarching methodology of this review? (Systematic, Scoping, Integrative, Qualitative Meta-Synthesis, or Critical Interpretive Synthesis).
 3. **Synthesis Type & Discursive Format:** How should the text be structured? (Argumentative-Expository, Expository/Descriptive, Comparative, Critical, or a combination).
@@ -46,7 +48,19 @@ Before analyzing the texts or writing the synthesis, you must prompt the user to
 
 Do not ask the user for themes yet. If the user sets the thematic agenda before seeing what the corpus actually contains, they risk anchoring on preconceptions.
 
-#### 1a. Reading PDF Full Texts (CRITICAL: Split Before Reading)
+#### 1a. Determine Reading Mode
+
+Based on the user's answer to the Pre-Flight question about full text availability, select one of two reading modes:
+
+**Mode A — Abstract-Only Mode** (when the user does not have full PDFs)
+
+Use this mode when the user has only abstracts, metadata, or the output table from `verified-paper-search`. In this mode:
+- Read the abstracts and metadata for all included papers.
+- Note that every synthesized claim will be grounded in abstract-level evidence only. This is a real limitation that must be disclosed in the final deliverable under Notes and Limitations.
+- Label every claim in the synthesis with the tag `[Abstract only]` so the reader knows the evidence source.
+- Proceed directly to Stage 1b (Corpus Overview) after reading all abstracts.
+
+**Mode B — Full-Text Mode** (when the user has PDF files)
 
 If the user has provided PDF files, you **MUST NOT read any PDF in full**. Reading a full PDF will either crash the session with an unrecoverable context-window error or produce shallow, hallucinated output. There are no exceptions.
 
