@@ -1,6 +1,6 @@
 ---
 name: verified-paper-search
-description: Find, verify, and synthesize academic literature for a topic or specific claim, actively minimizing citation hallucination through RAG principles. Use when someone asks to "find papers on X," wants a systematic/integrative literature review, needs a realist synthesis, or asks for citations to support an argument. This skill enforces a structured review protocol, teaches Boolean search strategy, ranks all sources by relevance, integrates journal quality assessment, and produces an evidence-grounded synthesis following systematic mapping and realist-informed synthesis best practices.
+description: Find and verify academic papers for a topic or specific claim via the OpenAlex API, minimizing citation hallucination through RAG principles. Enforces a structured review protocol, Boolean search strategy with user approval, relevance scoring, integrated journal quality assessment, mandatory OpenAlex JSON export for downstream bibliometric analysis, and a brief abstract-level preliminary summary. Deep academic synthesis is handled by the `deep-academic-synthesis` skill.
 ---
 
 # Verified Paper Search & Integrative Synthesis
@@ -111,14 +111,15 @@ You MUST retrieve and screen **all results** returned by each approved Boolean q
    - *Note: If a venue is deemed predatory or excessively low-quality, explicitly mark the paper as "Excluded (Quality)" in the mapping table, regardless of its topical relevance. If you ran `journal-quality-check` separately, apply those results here as additional exclusion criteria before exporting.*
 **3. Pipeline Export (CRITICAL):** Once the final list of included papers is determined, you **MUST save the raw OpenAlex JSON data** for those specific papers to a local file (e.g., `/home/ubuntu/articles/openalex_corpus.json`). This JSON file is the required input for `bibliometric-scientometric-analysis`.
 
-### Step 5 — RAG-Based Synthesis
+### Step 5 — Preliminary Summary (Brief, Abstract-Level Only)
 
-Conduct the synthesis using only the verified, high-relevance papers. Follow strict RAG (Retrieval-Augmented Generation) principles to avoid hallucination:
+Produce a short, factual summary of the included papers. This is **not** a deep academic synthesis. Its purpose is to give the researcher a quick orientation to the corpus before moving to the next stage of the pipeline.
 
-- **Grounding:** Every synthesized claim must be anchored to specific retrieved evidence. Never infer beyond what is explicitly stated in the sources.
-- **Evidence Tracking:** Explicitly distinguish whether a claim is supported by the **full-text**, the **abstract**, or just **metadata**. Full-text evidence carries higher weight.
-- **Synthesis Structure:** Organize findings according to the approved protocol (e.g., thematic mapping, or Context-Mechanism-Outcome configurations for realist synthesis).
-- **Confidence Assessment:** Rate the strength of the synthesized findings (Strong = multiple full-text sources; Moderate = single full-text or multiple abstracts; Tentative = single abstract or conflicting findings).
+- Write **one or two sentences per included paper**, drawn strictly from the abstract and metadata. Do not infer, interpret, or elaborate beyond what the abstract states.
+- Group papers by the main themes or concepts that emerge naturally from the titles and abstracts.
+- Flag any papers where the abstract is absent or too sparse to summarize.
+- **Do not** write flowing academic prose, thematic arguments, or theoretical interpretations here. That work belongs in `deep-academic-synthesis`.
+- End the summary with a brief note on the most prominent gaps or patterns visible from the corpus at abstract level.
 
 ### Step 6 — Produce the Deliverable
 
@@ -144,18 +145,19 @@ Default to a **Markdown file** unless the user requests a Word document (use the
 | [Smith24] | Title... | 2024 | *Higher Ed* (Scopus-indexed) | High (3) | Included |
 | [Jones23] | Title... | 2023 | *Predatory J* (High Risk) | High (3) | Excluded (Quality) |
 
-## 4. Evidence Synthesis
-*Synthesis of included papers based strictly on retrieved text, structured according to the selected review typology (e.g., thematic summary for integrative review, CMO configurations for realist review, or gap mapping for scoping review).*
+## 4. Preliminary Summary (Abstract-Level)
+*One to two sentences per included paper, grouped by emerging theme. This is not a deep synthesis. For full academic synthesis, proceed to `deep-academic-synthesis`.*
 
-### Theme / Mechanism / Finding 1: [Name]
-- **Details:** [Relevant details based on review type, e.g., Context/Mechanism/Outcome for realist, or Key Concept for integrative]
-- **Evidence Base:** [Synthesized narrative grounded in sources. E.g., "Smith (2024) found X based on full-text analysis, while Doe (2022) suggested Y in their abstract."]
-- **Evidence Strength:** [Strong / Moderate / Tentative] (Based on full-text availability and consensus)
+### [Theme / Concept Group Name]
+- **[Cite Key]** [Author(s), Year]: [One to two factual sentences drawn strictly from the abstract.]
 
-*(Repeat for other themes/findings)*
+*(Repeat for all included papers, grouped by theme)*
+
+**Patterns and gaps visible at abstract level:** [Brief note on what the corpus seems to converge on, and where obvious gaps exist.]
 
 ## 5. Notes & Limitations
 - [Coverage gaps, methodological limitations of the review, papers that couldn't be fully verified or accessed]
+- *Note: The preliminary summary above is grounded in abstracts only. Deep thematic analysis, theoretical interpretation, and academic prose synthesis should be conducted using the `deep-academic-synthesis` skill.*
 ```
 
 ## Next Steps in Pipeline
