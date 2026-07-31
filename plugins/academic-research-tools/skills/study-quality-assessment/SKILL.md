@@ -1,4 +1,5 @@
 ---
+name: study-quality-assessment
 description: Appraise the methodological quality of academic papers using full-text batch extraction and field-calibrated checklists (CASP, JBI, MMAT). Produces individual appraisal records and a consolidated quality matrix for the full corpus.
 ---
 

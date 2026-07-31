@@ -1,4 +1,5 @@
 ---
+name: corpus-screening
 description: Screen a corpus of papers retrieved by verified-paper-search against user-defined inclusion/exclusion criteria. Produces a screened corpus list with decisions (Include/Exclude/Uncertain) and exports results to CSV for use in subsequent pipeline stages.
 ---
 
