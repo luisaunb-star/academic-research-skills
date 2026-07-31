@@ -29,7 +29,7 @@ This repo is set up as a Claude Code [plugin marketplace](https://code.claude.co
 /plugin install academic-research-tools@academic-research-skills
 ```
 
-That installs all three skills at once. To update later, after you've pushed changes to this repo:
+That installs all seven skills at once. To update later, after you've pushed changes to this repo:
 
 ```
 /plugin marketplace update academic-research-skills
