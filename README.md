@@ -1,20 +1,24 @@
 # Academic Research Skills for Claude
 
-Five [Agent Skills](https://agentskills.io) focused on academic literature search, bibliometric science mapping, evidence synthesis, claim verification, and journal credibility checking — built to actively minimize citation hallucination and cognitive outsourcing rather than just produce plausible-looking output.
+Seven [Agent Skills](https://agentskills.io) focused on academic literature search, corpus screening, methodological quality appraisal, bibliometric science mapping, evidence synthesis, claim verification, and journal credibility checking — built to actively minimize citation hallucination and cognitive outsourcing rather than just produce plausible-looking output.
 
-The skills form a deliberate pipeline: `verified-paper-search` retrieves and maps the literature via OpenAlex, `journal-quality-check` audits venue credibility and filters the corpus, `bibliometric-scientometric-analysis` generates visual science mapping and network analyses, `deep-academic-synthesis` takes the researcher from abstract-level mapping to full-text section-by-section synthesis with the human in control of the intellectual architecture, and `scientific-reference-reviewer` validates individual claims.
+The skills form a deliberate pipeline: `verified-paper-search` retrieves and maps the literature via OpenAlex, `journal-quality-check` audits venue credibility, `corpus-screening` applies user-defined inclusion/exclusion criteria to produce the final corpus, `study-quality-assessment` appraises the methodological quality of each included paper using CASP, JBI, and MMAT checklists, `bibliometric-scientometric-analysis` generates visual science mapping and network analyses, `deep-academic-synthesis` takes the researcher from abstract-level mapping to full-text section-by-section synthesis with the human in control of the intellectual architecture, and `scientific-reference-reviewer` validates individual claims.
 
 ## Skills in this repo
 
-| Skill | What it does |
-|---|---|
-| [`plugins/academic-research-tools/skills/verified-paper-search`](plugins/academic-research-tools/skills/verified-paper-search) | Finds and verifies academic papers using the **OpenAlex API exclusively**, with structured Boolean search strategy, user-approved protocol, relevance scoring, integrated journal quality assessment, and mandatory OpenAlex JSON export for downstream bibliometric analysis. Produces a Markdown deliverable with the search strategy, systematic mapping table, and RAG-based evidence synthesis. |
-| [`plugins/academic-research-tools/skills/journal-quality-check`](plugins/academic-research-tools/skills/journal-quality-check) | Checks whether a journal is currently indexed in Redalyc/AmeliCA, SciELO, Scopus, Web of Science, or MEDLINE/PubMed, evaluates a journal against those indexers' admission criteria for self-assessment before submission, and flags predatory-journal warning signs. |
-| [`plugins/academic-research-tools/skills/bibliometric-scientometric-analysis`](plugins/academic-research-tools/skills/bibliometric-scientometric-analysis) | Takes the OpenAlex JSON corpus exported by `verified-paper-search` and generates visual science mapping using pyBibX. Offers nine analysis groups (descriptive/EDA, author analysis, source analysis, geographic analysis, keyword co-occurrence, citation analysis, network analysis, strategic indicators, and optional BERTopic topic modelling). Produces interactive HTML plots and a Markdown report with data-grounded interpretive commentary. |
-| [`plugins/academic-research-tools/skills/deep-academic-synthesis`](plugins/academic-research-tools/skills/deep-academic-synthesis) | Takes the corpus produced by `verified-paper-search` and synthesizes it in depth using a three-stage, human-in-control model: (1) AI-generated corpus overview from split PDFs read in 4-page batches, (2) user-driven thematic agenda setting with AI evidence feedback, and (3) incremental prose generation approved section by section. Enforces strict language constraints (no promotional adjectives, no artificial copulas) and anti-hallucination rules throughout. |
-| [`plugins/academic-research-tools/skills/scientific-reference-reviewer`](plugins/academic-research-tools/skills/scientific-reference-reviewer) | Builds a strict, auditable evidence base for one specific scientific/technical claim: explicit 8-tier source classification, exact-location excerpt anchors, and no synthesized conclusion — leaves the final call to the human writer. |
+The pipeline runs in the order shown in the table below. Each skill is self-contained but designed to receive the output of the preceding stage.
 
-All five ship together as one plugin, `academic-research-tools`, so one install command gets you all of them. Each skill is still self-contained (its own `SKILL.md` + `references/`) if you'd rather copy out just one.
+| # | Skill | What it does |
+|---|---|---|
+| 1 | [`plugins/academic-research-tools/skills/verified-paper-search`](plugins/academic-research-tools/skills/verified-paper-search) | Finds and verifies academic papers using the **OpenAlex API exclusively**, with structured Boolean search strategy, user-approved protocol, relevance scoring, integrated journal quality assessment, and mandatory OpenAlex JSON export for downstream bibliometric analysis. Produces a Markdown deliverable with the search strategy, systematic mapping table, and preliminary abstract-level evidence summary. |
+| 2 | [`plugins/academic-research-tools/skills/journal-quality-check`](plugins/academic-research-tools/skills/journal-quality-check) | Checks whether a journal is currently indexed in Redalyc/AmeliCA, SciELO, Scopus, Web of Science, or MEDLINE/PubMed, evaluates a journal against those indexers' admission criteria for self-assessment before submission, and flags predatory-journal warning signs. |
+| 3 | [`plugins/academic-research-tools/skills/corpus-screening`](plugins/academic-research-tools/skills/corpus-screening) | Guides the researcher through title and abstract screening against user-defined inclusion/exclusion criteria. Presents papers one by one (or in batches), supports AI pre-flagging with transparent reasoning, handles a second-pass review of Uncertain papers, and exports the screened corpus to CSV for use in subsequent pipeline stages. |
+| 4 | [`plugins/academic-research-tools/skills/study-quality-assessment`](plugins/academic-research-tools/skills/study-quality-assessment) | Appraises the methodological quality of each included paper using full-text batch reading and field-calibrated checklists: CASP Qualitative (2024), CASP Cross-Sectional (2024), JBI Quasi-Experimental (2024), JBI Analytical Cross-Sectional (2025), CASP Systematic Review (2024), and MMAT 2018. Applies field-specific calibration rules for non-health research. Produces individual appraisal records and a consolidated quality matrix exported to CSV. |
+| 5 | [`plugins/academic-research-tools/skills/bibliometric-scientometric-analysis`](plugins/academic-research-tools/skills/bibliometric-scientometric-analysis) | Takes the OpenAlex JSON corpus exported by `verified-paper-search` and generates visual science mapping using pyBibX. Offers nine analysis groups (descriptive/EDA, author analysis, source analysis, geographic analysis, keyword co-occurrence, citation analysis, network analysis, strategic indicators, and topic modelling via spaCy and Gensim LDA). Produces interactive HTML plots and a Markdown report with data-grounded interpretive commentary. |
+| 6 | [`plugins/academic-research-tools/skills/deep-academic-synthesis`](plugins/academic-research-tools/skills/deep-academic-synthesis) | Takes the corpus produced by `verified-paper-search` and synthesizes it in depth using a three-stage, human-in-control model: (1) AI-generated corpus overview from split PDFs read in 4-page batches, (2) user-driven thematic agenda setting with AI evidence feedback, and (3) incremental prose generation approved section by section. Enforces strict language constraints (no promotional adjectives, no artificial copulas) and anti-hallucination rules throughout. |
+| 7 | [`plugins/academic-research-tools/skills/scientific-reference-reviewer`](plugins/academic-research-tools/skills/scientific-reference-reviewer) | Builds a strict, auditable evidence base for one specific scientific/technical claim: explicit 8-tier source classification, exact-location excerpt anchors, and no synthesized conclusion — leaves the final call to the human writer. |
+
+All seven ship together as one plugin, `academic-research-tools`, so one install command gets you all of them. Each skill is still self-contained (its own `SKILL.md` + `references/`) if you'd rather copy out just one.
 
 ## Installing in Claude Code (recommended: plugin marketplace)
 
@@ -48,11 +52,13 @@ If you'd rather not use the plugin system, the skills are plain folders and work
 git clone https://github.com/luisaunb-star/academic-research-skills.git
 mkdir -p ~/.claude/skills
 
-cp -r academic-research-skills/plugins/academic-research-tools/skills/verified-paper-search        ~/.claude/skills/
-cp -r academic-research-skills/plugins/academic-research-tools/skills/journal-quality-check         ~/.claude/skills/
-cp -r academic-research-skills/plugins/academic-research-tools/skills/scientific-reference-reviewer ~/.claude/skills/
-cp -r academic-research-skills/plugins/academic-research-tools/skills/deep-academic-synthesis              ~/.claude/skills/
-cp -r academic-research-skills/plugins/academic-research-tools/skills/bibliometric-scientometric-analysis  ~/.claude/skills/
+cp -r academic-research-skills/plugins/academic-research-tools/skills/verified-paper-search              ~/.claude/skills/
+cp -r academic-research-skills/plugins/academic-research-tools/skills/journal-quality-check               ~/.claude/skills/
+cp -r academic-research-skills/plugins/academic-research-tools/skills/corpus-screening                    ~/.claude/skills/
+cp -r academic-research-skills/plugins/academic-research-tools/skills/study-quality-assessment            ~/.claude/skills/
+cp -r academic-research-skills/plugins/academic-research-tools/skills/bibliometric-scientometric-analysis ~/.claude/skills/
+cp -r academic-research-skills/plugins/academic-research-tools/skills/deep-academic-synthesis             ~/.claude/skills/
+cp -r academic-research-skills/plugins/academic-research-tools/skills/scientific-reference-reviewer       ~/.claude/skills/
 ```
 
 Either way — marketplace or manual copy — Claude Code discovers the skills automatically at the start of a session. No restart, no separate registration step.
@@ -68,9 +74,17 @@ zip -r verified-paper-search.zip .
 
 Then upload `verified-paper-search.zip` under **Customize → Skills → "+" → Upload a skill**. Repeat per skill you want there. Requires Code execution and file creation enabled in Settings → Capabilities.
 
+## A note on `corpus-screening`
+
+This skill requires no additional Python packages. It works with CSV, Excel, plain text, BibTeX, or RIS input from `verified-paper-search`. The exported `screened_corpus.csv` is the recommended input for `study-quality-assessment` and `bibliometric-scientometric-analysis`. The skill is designed for title and abstract screening only; full-text screening decisions should be made using `study-quality-assessment`.
+
+## A note on `study-quality-assessment`
+
+This skill requires no additional Python packages beyond those used by `split-pdf`. It embeds all six checklists (CASP Qualitative 2024, CASP Cross-Sectional 2024, JBI Quasi-Experimental 2024, JBI Analytical Cross-Sectional 2025, CASP Systematic Review 2024, and MMAT 2018) with detailed per-item guidance. The exported `quality_appraisal_matrix.csv` can be opened directly in Excel or Google Sheets and included in the Methods section of a review manuscript.
+
 ## A note on `bibliometric-scientometric-analysis`
 
-This skill requires **pyBibX** (`pip install pybibx`), which it installs automatically. The optional BERTopic module (Group 9) additionally requires `pip install bertopic` and works best with a corpus of at least 50 papers. The skill takes as input the `openalex_corpus.json` file exported by `verified-paper-search` in Step 4. If you applied `journal-quality-check` exclusions, ensure those papers are removed from the JSON before passing it to this skill.
+This skill requires **pyBibX** (`pip install pybibx`), which it installs automatically. Topic modelling (Group 9) uses spaCy and Gensim LDA, which the skill also installs. The skill takes as input the `openalex_corpus.json` file exported by `verified-paper-search` in Step 4. If you applied `journal-quality-check` or `corpus-screening` exclusions, ensure those papers are removed from the JSON before passing it to this skill.
 
 ## A note on `deep-academic-synthesis`
 
