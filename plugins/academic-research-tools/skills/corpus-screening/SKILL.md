@@ -43,11 +43,24 @@ Please define your inclusion and exclusion criteria for this review. You may ada
 **Instructions for the user:**
 - Confirm, modify, or replace the criteria above.
 - Add any field-specific criteria relevant to your review topic (for example, minimum sample size, specific geographic scope, specific methodology types required).
-- Indicate whether you want the AI to pre-flag papers before you make the final decision, or whether you prefer to review each paper yourself without AI pre-flagging.
 
 ---
 
-Wait for the user to confirm or revise the criteria before proceeding to Step 2.
+After the user confirms or revises the criteria, ask the following question before proceeding to Step 2:
+
+---
+
+**Would you like AI pre-flagging during screening?**
+
+If enabled, I will read each title and abstract against your criteria and suggest a preliminary decision (Include, Exclude, or Uncertain) with a direct quote from the text as evidence. You always make the final call and can override any suggestion.
+
+If disabled, I will present each paper without any suggestion, so your decisions are not influenced by my reading.
+
+Type **yes** to enable pre-flagging or **no** to screen without it.
+
+---
+
+Wait for the user's answer and record the preference before proceeding to Step 2.
 
 ---
 
