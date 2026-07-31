@@ -3,6 +3,28 @@ name: scientific-reference-reviewer
 description: Build a rigorous, auditable evidence base for one specific scientific/technical claim — strict source tiering, exact-location excerpt anchors, no final synthesized conclusion. Use when someone wants to verify a specific claim, gather evidence for a technical assertion before citing it, audit existing references in a draft, or check whether a thesis/paper/report claim is actually backed by peer-reviewed literature. Trigger on "scientific evidence for," "verificar claim," "revisão de literatura," "buscar fonte peer-reviewed," "sustentar com artigo," "find evidence for," "peer-reviewed source for," and similar — especially in environmental engineering, adsorption, biosorbents, or water/wastewater treatment. Stricter and slower than `verified-paper-search` — use this skill for "prove this exact sentence," that one for "find me papers on this topic."
 ---
 
+# 🌐 LANGUAGE RULE
+
+Detect the language of the user's first message and conduct the entire session in that language. This applies to all prompts, questions, tables, summaries, narrative text, and exported file content.
+
+**If the user writes in Portuguese**, before proceeding ask:
+
+> "Detetei que está a escrever em português. Para garantir que o vocabulário e o registo estejam corretos, poderia indicar qual variante prefere?
+> - **PT-BR** — Português do Brasil
+> - **PT-PT** — Português Europeu"
+
+Wait for the user's answer and use that variant consistently throughout the session.
+
+**For all other languages**, proceed directly in the detected language without asking.
+
+**Exception — technical elements that must remain in English regardless of session language:**
+- File paths and file names (e.g., `screened_corpus.csv`, `quality_appraisal_matrix.csv`)
+- CSV column headers (e.g., `Screening_Decision`, `Exclusion_Criterion`)
+- Python code and shell commands
+- API field names and JSON keys
+
+---
+
 # Scientific Reference Reviewer
 
 ## Core objective

@@ -3,6 +3,28 @@ name: journal-quality-check
 description: Check whether an academic journal is indexed in Redalyc/AmeliCA, SciELO, Scopus, Web of Science, or MEDLINE/PubMed, evaluate how close a journal is to meeting an indexer's admission criteria before submission, or flag predatory/low-credibility journal warning signs. Use whenever someone asks "is this journal indexed in Scopus/WoS/SciELO," "is this journal MEDLINE-indexed or just in PubMed," "should I submit my paper/journal to X," "is this a predatory journal," "what's the quality of this journal," wants to compare journals for where to publish, or is preparing a journal for indexer submission. Also use this as a supporting check whenever evaluating how much weight to give a cited source — e.g. while auditing references or running a literature search — since the venue a peer-reviewed paper appears in materially affects how much that "peer reviewed" label is worth.
 ---
 
+# 🌐 LANGUAGE RULE
+
+Detect the language of the user's first message and conduct the entire session in that language. This applies to all prompts, questions, tables, summaries, narrative text, and exported file content.
+
+**If the user writes in Portuguese**, before proceeding ask:
+
+> "Detetei que está a escrever em português. Para garantir que o vocabulário e o registo estejam corretos, poderia indicar qual variante prefere?
+> - **PT-BR** — Português do Brasil
+> - **PT-PT** — Português Europeu"
+
+Wait for the user's answer and use that variant consistently throughout the session.
+
+**For all other languages**, proceed directly in the detected language without asking.
+
+**Exception — technical elements that must remain in English regardless of session language:**
+- File paths and file names (e.g., `screened_corpus.csv`, `quality_appraisal_matrix.csv`)
+- CSV column headers (e.g., `Screening_Decision`, `Exclusion_Criterion`)
+- Python code and shell commands
+- API field names and JSON keys
+
+---
+
 # Journal Quality Check
 
 ## What "quality" means here

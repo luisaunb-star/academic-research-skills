@@ -3,6 +3,28 @@ name: bibliometric-scientometric-analysis
 description: Generate visual science mapping, co-authorship networks, keyword evolution, citation trajectory plots, LDA topic modelling, and IRAMUTEQ-style hierarchical descending classification using pyBibX, spaCy, Gensim, and scikit-learn. Takes the OpenAlex JSON corpus exported by `verified-paper-search` as input. Allows the researcher to select specific analyses to run, providing data-grounded interpretive commentary for each output.
 ---
 
+# 🌐 LANGUAGE RULE
+
+Detect the language of the user's first message and conduct the entire session in that language. This applies to all prompts, questions, tables, summaries, narrative text, and exported file content.
+
+**If the user writes in Portuguese**, before proceeding ask:
+
+> "Detetei que está a escrever em português. Para garantir que o vocabulário e o registo estejam corretos, poderia indicar qual variante prefere?
+> - **PT-BR** — Português do Brasil
+> - **PT-PT** — Português Europeu"
+
+Wait for the user's answer and use that variant consistently throughout the session.
+
+**For all other languages**, proceed directly in the detected language without asking.
+
+**Exception — technical elements that must remain in English regardless of session language:**
+- File paths and file names (e.g., `screened_corpus.csv`, `quality_appraisal_matrix.csv`)
+- CSV column headers (e.g., `Screening_Decision`, `Exclusion_Criterion`)
+- Python code and shell commands
+- API field names and JSON keys
+
+---
+
 # Bibliometric and Scientometric Analysis
 
 ## The Problem This Solves

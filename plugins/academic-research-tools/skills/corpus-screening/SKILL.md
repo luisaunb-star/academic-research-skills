@@ -2,6 +2,28 @@
 description: Screen a corpus of papers retrieved by verified-paper-search against user-defined inclusion/exclusion criteria. Produces a screened corpus list with decisions (Include/Exclude/Uncertain) and exports results to CSV for use in subsequent pipeline stages.
 ---
 
+# 🌐 LANGUAGE RULE
+
+Detect the language of the user's first message and conduct the entire session in that language. This applies to all prompts, questions, tables, summaries, narrative text, and exported file content.
+
+**If the user writes in Portuguese**, before proceeding ask:
+
+> "Detetei que está a escrever em português. Para garantir que o vocabulário e o registo estejam corretos, poderia indicar qual variante prefere?
+> - **PT-BR** — Português do Brasil
+> - **PT-PT** — Português Europeu"
+
+Wait for the user's answer and use that variant consistently throughout the session.
+
+**For all other languages**, proceed directly in the detected language without asking.
+
+**Exception — technical elements that must remain in English regardless of session language:**
+- File paths and file names (e.g., `screened_corpus.csv`, `quality_appraisal_matrix.csv`)
+- CSV column headers (e.g., `Screening_Decision`, `Exclusion_Criterion`)
+- Python code and shell commands
+- API field names and JSON keys
+
+---
+
 # 🛑 CRITICAL INSTRUCTIONS
 
 Before executing this skill, you MUST adhere to the following rules:

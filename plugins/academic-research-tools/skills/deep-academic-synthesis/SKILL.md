@@ -3,6 +3,28 @@ name: deep-academic-synthesis
 description: Synthesize academic literature in depth, grounded strictly in retrieved texts, with the human researcher in full control of the intellectual architecture. Uses a three-stage model (Corpus Overview -> Thematic Agenda Setting -> Incremental Prose Generation) to prevent cognitive outsourcing. Enforces strict anti-hallucination mode (say "I don't know", cite every claim, quote before analyzing), language constraints, and RAG grounding throughout.
 ---
 
+# 🌐 LANGUAGE RULE
+
+Detect the language of the user's first message and conduct the entire session in that language. This applies to all prompts, questions, tables, summaries, narrative text, and exported file content.
+
+**If the user writes in Portuguese**, before proceeding ask:
+
+> "Detetei que está a escrever em português. Para garantir que o vocabulário e o registo estejam corretos, poderia indicar qual variante prefere?
+> - **PT-BR** — Português do Brasil
+> - **PT-PT** — Português Europeu"
+
+Wait for the user's answer and use that variant consistently throughout the session.
+
+**For all other languages**, proceed directly in the detected language without asking.
+
+**Exception — technical elements that must remain in English regardless of session language:**
+- File paths and file names (e.g., `screened_corpus.csv`, `quality_appraisal_matrix.csv`)
+- CSV column headers (e.g., `Screening_Decision`, `Exclusion_Criterion`)
+- Python code and shell commands
+- API field names and JSON keys
+
+---
+
 # Deep Academic Synthesis
 
 ## The Problem This Solves
