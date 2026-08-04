@@ -63,7 +63,7 @@ Do not run all analyses blindly. Present the following menu to the user, grouped
 | Submethod | Method | Output | Min. Corpus |
 |---|---|---|---|
 | **9a. LDA Topic Modelling** | spaCy preprocessing + Gensim LDA + pyLDAvis | Interactive HTML bubble chart of topic clusters with top terms per topic | 15+ |
-| **9b. Hierarchical Descending Classification (CHD)** | spaCy + TF-IDF + scipy Ward linkage | Dendrogram with labelled lexical classes and top terms per class (IRAMUTEQ-style) | 15+ |
+| **9b. Hierarchical Descending Classification (CHD)** | spaCy + binary ECU matrix + divisive chi-square splitting (Reinert method) | Split-history dendrogram with chi-square values per split and top terms per lexical class (IRAMUTEQ-style) | 15+ |
 
 **🛑 STOP: Ask the user which groups (and, for Group 9, which submethods) they want to run. Wait for their selection before proceeding.**
 
@@ -101,13 +101,20 @@ Execute the selected analyses using Python. Save all outputs into a dedicated di
 
 **For Group 9b (Hierarchical Descending Classification, IRAMUTEQ-style):** Run the following pipeline:
 
-1. **Preprocessing with spaCy:** Same pipeline as 9a.
-2. **TF-IDF matrix:** Use `sklearn.feature_extraction.text.TfidfVectorizer` to build a term-document matrix from the preprocessed abstracts.
-3. **Ward hierarchical clustering:** Apply `scipy.cluster.hierarchy.linkage` with Ward method and `scipy.cluster.hierarchy.fcluster` to cut the dendrogram into K classes. Ask the user to select K (suggested range: 3 to 7).
-4. **Dendrogram:** Render the dendrogram using `scipy.cluster.hierarchy.dendrogram` and `matplotlib`, with class labels and the top 5 chi-square-associated terms per class annotated on the plot. Save as `chd_dendrogram.png`.
-5. **Class profile table:** For each class, compute the chi-square association between each term and the class (using `sklearn` contingency tables) and present the top 10 terms per class in a Markdown table, along with the percentage of text segments covered by each class.
+1. **ECU segmentation:** Split each abstract into Elementary Context Units (ECUs) of approximately 40 characters each, breaking at sentence or clause boundaries where possible. Each ECU retains a reference to its source document. Discard ECUs shorter than 10 characters.
+2. **Preprocessing with spaCy:** Lemmatize each ECU and filter to content words only (POS tags NOUN, VERB, ADJ). Remove tokens shorter than 3 characters and stopwords.
+3. **Binary term-by-ECU matrix:** Use `sklearn.feature_extraction.text.CountVectorizer` with `binary=True` to build a presence/absence matrix where rows are ECUs and columns are terms. Do NOT use TF-IDF — the Reinert method requires binary co-occurrence, not term frequency.
+4. **Divisive chi-square splitting:** Implement a recursive bisection loop following the Reinert logic:
+   - Start with all ECUs in one class.
+   - At each step, select the largest current class.
+   - Compute a chi-square-based binary split of that class: for each possible partition of the ECUs in the class into two sub-groups, find the split that maximises the chi-square statistic between the two resulting sub-groups (use `scipy.stats.chi2_contingency` on the binary term counts).
+   - Divide the class into the two sub-groups found.
+   - Repeat until K classes are reached. Ask the user to select K before running (suggested range: 3 to 7).
+5. **Chi-square term association:** For each final class, compute the chi-square statistic for each term by comparing its frequency in the ECUs of that class against its frequency in all other ECUs. Rank terms by descending chi-square value.
+6. **Dendrogram:** Render a split-history dendrogram (not a Ward linkage tree) using `matplotlib`, showing the chi-square value at each split node and annotating the top 5 terms per final class. Save as `chd_dendrogram.png`.
+7. **Class profile table:** Present the top 10 terms per class ranked by chi-square, the number of ECUs per class, and the percentage of total ECUs covered by each class.
 
-*Important limitation to disclose:* This implementation approximates the Reinert method used in IRAMUTEQ. It uses Ward agglomerative clustering on a TF-IDF matrix rather than Reinert's original divisive chi-square algorithm. Results are comparable in structure but not identical. The R package `rainette` provides a more faithful implementation if the user requires strict methodological equivalence.
+*Important limitation to disclose:* This implementation follows the logic of the Reinert method more closely than a Ward-based approach, using divisive chi-square splitting on binary ECU segments rather than agglomerative clustering on TF-IDF document vectors. It remains an approximation because the original IRAMUTEQ segmentation algorithm and its specific chi-square variant are not fully documented in the public literature. The R package `rainette` (Barnier, 2020) is the most faithful open-source implementation available for strict methodological equivalence.
 
 ### Step 4 — Interpretive Commentary & Deliverable
 
