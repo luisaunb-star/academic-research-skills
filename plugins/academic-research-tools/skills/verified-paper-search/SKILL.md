@@ -1,6 +1,6 @@
 ---
 name: verified-paper-search
-description: Find and verify academic papers for a topic or specific claim via the OpenAlex API, minimizing citation hallucination through RAG principles. Enforces a structured review protocol, Boolean search strategy with user approval, relevance scoring, integrated journal quality assessment, mandatory OpenAlex JSON export for downstream bibliometric analysis, and a brief abstract-level preliminary summary. Deep academic synthesis is handled by the `deep-academic-synthesis` skill.
+description: Find and verify academic papers for a topic or specific claim via the OpenAlex API, minimizing citation hallucination through RAG principles. Enforces a structured review protocol, Boolean search strategy with user approval, corpus size management (refinement loop if >150 records), relevance scoring, DOI spot-check, mandatory OpenAlex JSON export for downstream bibliometric analysis, and a brief abstract-level preliminary summary. Journal quality assessment is handled by `journal-quality-check`. Deep academic synthesis is handled by `deep-academic-synthesis`.
 ---
 
 # 🌐 LANGUAGE RULE
@@ -103,6 +103,8 @@ To ensure structured, reproducible metadata that flows into downstream bibliomet
 - Use structured API with field-specific syntax (e.g., `title:("social impact") AND abstract:(university)`).
 - OpenAlex fully supports Boolean logic, wildcards, and exact phrase matching.
 
+**Before drafting Boolean strings, read `references/search_apis.md` for the correct OpenAlex API syntax. Do not rely on web searches or internal knowledge for API syntax.**
+
 **Present the drafted Boolean strings to the user in a structured table before executing any search.** Show the exact query string, the rationale for key term choices, and any synonyms or wildcards applied. Ask the user to confirm, adjust, or reject each string.
 
 | Database | Boolean Query String | Key Term Rationale |
@@ -113,25 +115,27 @@ To ensure structured, reproducible metadata that flows into downstream bibliomet
 
 ### Step 4 — Search, Filter, and Export
 
-Retrieve the papers via OpenAlex and rigorously filter them before inclusion.
+Before executing the search, read `references/risk_checklist.md` and keep it active in your context throughout this step.
 
-**0. Retrieval Exhaustiveness (CRITICAL — Do Not Apply Arbitrary Cutoffs):**
-You MUST retrieve and screen **all results** returned by each approved Boolean query, not a self-imposed top-N sample. Applying an arbitrary cutoff (e.g., "top 20") without the user's explicit instruction is a methodological error that makes the review non-reproducible and potentially biased toward the most prominent papers.
+**0. Retrieval Exhaustiveness and Corpus Size Management (CRITICAL — Do Not Apply Arbitrary Cutoffs):**
+Retrieve the full result set for each approved Boolean query. Report the total number of records returned by each query before screening begins. After deduplication across all queries, check the total corpus size.
 
-- Retrieve the full result set for each query.
-- Report the **total number of records returned** by each query before screening begins.
-- If the total result set is very large (e.g., >200 records per query), **ask the user** whether to screen all records, apply additional filters (e.g., date range, document type, language), or set a retrieval limit. Document the user's decision in the audit trail.
-- Never silently cap retrieval. If you make any practical limit, it must be explicitly stated to the user and recorded in the Search Strategy section of the deliverable.
+- If the deduplicated total is **150 records or fewer**, proceed directly to relevance scoring.
+- If the deduplicated total **exceeds 150 records**, do NOT silently cut. Instead, propose Boolean refinements to the user (narrower synonyms, additional AND terms, tighter date range, document type filter) and present them in a table with rationale. Ask the user to approve the refinements before re-running the search. Repeat until the corpus is 150 records or fewer, or until the user explicitly accepts a larger corpus and instructs you to proceed.
+- Never apply a silent top-N cutoff. Any practical limit must be explicitly stated to the user and recorded in the Search Strategy section of the deliverable.
 
 **1. Assess Relevance:** Read the abstract/metadata to score topical relevance:
-   - **High (3):** Directly addresses research question; primary focus. (Candidate for synthesis)
+   - **High (3):** Directly addresses research question; primary focus. (Candidate for corpus)
    - **Medium (2):** Indirectly addresses question; secondary focus. (Supporting context)
-   - **Low (1):** Tangentially related. (Exclude from synthesis)
-**2. Assess Journal Quality (Integrated):** Evaluate the venue's credibility immediately:
-   - Check indexing status (Scopus, Web of Science, SciELO, Redalyc, MEDLINE).
-   - Flag predatory warning signs (rapid publication volume, single-editor review, no ethics code).
-   - *Note: If a venue is deemed predatory or excessively low-quality, explicitly mark the paper as "Excluded (Quality)" in the mapping table, regardless of its topical relevance. If you ran `journal-quality-check` separately, apply those results here as additional exclusion criteria before exporting.*
-**3. Pipeline Export (CRITICAL):** Once the final list of included papers is determined, you **MUST save the raw OpenAlex JSON data** for those specific papers to a local file (e.g., `/home/ubuntu/articles/openalex_corpus.json`). This JSON file is the required input for `bibliometric-scientometric-analysis`.
+   - **Low (1):** Tangentially related. (Exclude from corpus)
+
+**2. Journal quality — do not assess here.** Record the venue name in the mapping table but do not evaluate indexing status, quartile, or predatory risk. That assessment is the role of `journal-quality-check`, which runs after this skill in the pipeline. Do not mark any paper as "Excluded (Quality)" at this stage.
+
+**3. DOI spot-check:** After relevance scoring, randomly select 3 to 5 papers from the High-relevance group and verify their DOIs by resolving `https://doi.org/{doi}`. If any DOI fails to resolve, flag the paper as "DOI unverified" in the mapping table and report it to the user before exporting.
+
+**4. Snowballing is out of scope for this skill.** Forward snowballing (finding papers that cite your corpus) and backward snowballing (checking reference lists of included papers) are not part of this search step. If the review typology requires snowballing (e.g., systematic review), note it as a limitation in Section 5 of the deliverable and conduct it as a separate manual pass after corpus screening.
+
+**5. Pipeline Export (CRITICAL):** Once the final list of included papers is determined (High and Medium relevance), you MUST save the raw OpenAlex JSON data for those papers to a local file (`/home/ubuntu/articles/openalex_corpus.json`). This JSON file is the required input for `bibliometric-scientometric-analysis`.
 
 ### Step 5 — Preliminary Summary (Brief, Abstract-Level Only)
 
@@ -160,12 +164,13 @@ Default to a **Markdown file** unless the user requests a Word document (use the
 - **Execution Summary:** [Total retrieved, total verified, total excluded]
 
 ## 3. Systematic Mapping (All Retrieved Sources)
-*All sources sorted by relevance. Journal quality assessment is integrated here.*
+*All sources sorted by relevance score. Journal quality assessment is conducted separately in `journal-quality-check`.*
 
-| Cite Key | Title & Authors | Year | Venue & Quality Assessment | Relevance Score | Inclusion Decision |
-|----------|-----------------|------|----------------------------|-----------------|--------------------|
-| [Smith24] | Title... | 2024 | *Higher Ed* (Scopus-indexed) | High (3) | Included |
-| [Jones23] | Title... | 2023 | *Predatory J* (High Risk) | High (3) | Excluded (Quality) |
+| Cite Key | Title and Authors | Year | Venue | DOI | Relevance Score | Inclusion Decision |
+|---|---|---|---|---|---|---|
+| [Smith24] | Title... | 2024 | Higher Education | 10.xxxx/xxxx | High (3) | Included |
+| [Jones23] | Title... | 2023 | Journal of X | 10.xxxx/xxxx | Low (1) | Excluded (Relevance) |
+| [Brown22] | Title... | 2022 | Journal of Y | DOI unverified | High (3) | Included (DOI unverified — flag for user) |
 
 ## 4. Preliminary Summary (Abstract-Level)
 *One to two sentences per included paper, grouped by emerging theme. This is not a deep synthesis. For full academic synthesis, proceed to `deep-academic-synthesis`.*
