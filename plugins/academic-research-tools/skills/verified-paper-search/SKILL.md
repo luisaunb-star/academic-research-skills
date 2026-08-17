@@ -1,6 +1,6 @@
 ---
 name: verified-paper-search
-description: Find and verify academic papers for a topic or specific claim via the OpenAlex API, minimizing citation hallucination through RAG principles. Enforces a structured review protocol, Boolean search strategy with user approval, corpus size management (refinement loop if >150 records), relevance scoring, DOI spot-check, mandatory OpenAlex JSON export for downstream bibliometric analysis, and a brief abstract-level preliminary summary. Journal quality assessment is handled by `journal-quality-check`. Deep academic synthesis is handled by `deep-academic-synthesis`.
+description: Find and verify academic papers for a topic or specific claim via the OpenAlex API, minimizing citation hallucination through RAG principles. Enforces a structured review protocol, researcher-approved Boolean search strategy, user-controlled large-corpus consultation at 150 and 500 records, preliminary topical triage that does not replace screening, DOI spot-checking, and auditable OpenAlex candidate-corpus export. Journal quality assessment is handled by `journal-quality-check`, final inclusion/exclusion by `corpus-screening`, and deep synthesis by `deep-academic-synthesis`.
 ---
 
 # 🌐 LANGUAGE RULE
@@ -79,11 +79,11 @@ Based on the user's topic and the **selected review typology** from Step 1, draf
 
 The draft protocol must align with the chosen typology and include:
 - **Review Purpose & Question:** Clarified using PICOTS (Population, Intervention, Context, Outcome, Time, Study design) or SPIDER framework.
-- **Review Design:** Tailored to the selected typology (e.g., if Scopus Review, focus on mapping; if Realist, focus on CMO configurations).
+- **Review Design:** Tailored to the selected typology (e.g., if Scoping Review, focus on mapping; if Realist-Informed Synthesis, focus on CMO configurations).
 - **Corpus Boundary:** Databases to search, date ranges, language restrictions.
 - **Unit of Analysis:** The paper, or specific claims/passages within the paper.
-- **Extraction Fields:** Define what will be extracted (e.g., year, country, paper type, evaluation format, indicator approach, context, mechanism, outcome, evidence strength).
-- **Quality & Rigor Approach:** Define how sources will be appraised (e.g., MMAT for empirical, RAMESES logic for realist evidence).
+- **Search-Stage Extraction Fields:** Define metadata and audit fields only (e.g., title, authors, year, venue, DOI, abstract availability, document type, query source, and preliminary triage status). Do not define theoretical, methodological, evidence-strength, or synthesis fields here. Those belong to downstream stages after researcher-controlled screening.
+- **Downstream Appraisal Plan:** State that journal/source credibility will be assessed later with `journal-quality-check`, title/abstract eligibility decisions will be made by the researcher in `corpus-screening`, and methodological quality appraisal will be conducted later with `study-quality-assessment` when full texts are available.
 
 **🛑 STOP: Present the draft protocol and wait for user approval before continuing.**
 
@@ -113,83 +113,122 @@ To ensure structured, reproducible metadata that flows into downstream bibliomet
 
 **🛑 STOP: Present the Boolean strings to the user and wait for explicit approval (or requested adjustments) before executing any search. Document the final approved strings in the audit trail.**
 
-### Step 4 — Search, Filter, and Export
+### Step 4 — Retrieve, Manage Corpus Size, and Export
 
 Before executing the search, read `references/risk_checklist.md` and keep it active in your context throughout this step.
 
-**0. Retrieval Exhaustiveness and Corpus Size Management (CRITICAL — Do Not Apply Arbitrary Cutoffs):**
-Retrieve the full result set for each approved Boolean query. Report the total number of records returned by each query before screening begins. After deduplication across all queries, check the total corpus size.
+**0. Retrieval Exhaustiveness and Researcher Control (CRITICAL):** Retrieve the complete result set for each approved Boolean query and deduplicate records across queries. Report the number returned by each query and the total after deduplication. The **150-record threshold is a prompt for researcher consultation, not a target corpus size**.
 
-- If the deduplicated total is **150 records or fewer**, proceed directly to relevance scoring.
-- If the deduplicated total **exceeds 150 records**, do NOT silently cut. Instead, propose Boolean refinements to the user (narrower synonyms, additional AND terms, tighter date range, document type filter) and present them in a table with rationale. Ask the user to approve the refinements before re-running the search. Repeat until the corpus is 150 records or fewer, or until the user explicitly accepts a larger corpus and instructs you to proceed.
-- Never apply a silent top-N cutoff. Any practical limit must be explicitly stated to the user and recorded in the Search Strategy section of the deliverable.
+- For **150 or fewer records**, retain every deduplicated record for preliminary topical triage and later researcher-controlled screening.
+- For **151 to 500 records**, PAUSE before changing the search or removing any record. Tell the researcher that the corpus may be burdensome to screen and ask them to choose one of the following options: (a) retain the entire corpus for screening, (b) approve one or more proposed Boolean refinements, or (c) apply researcher-selected metadata filters such as date range, language, document type, country, subject area, or open-access status.
+- For **more than 500 records**, PAUSE before individual-record filtering. State the total count and explain that screening the unrefined corpus may be burdensome. Present the same three options. Do not impose a retrieval cap, alter a Boolean string, apply a metadata filter, or remove records unless the researcher explicitly approves that action.
+- When proposing refinements, present them in a table with the exact revised Boolean string or metadata filter, the expected narrowing logic, and the possible scope cost. Wait for approval before re-running any search.
+- **Never aim for, retrieve only, rank to, or stop at 50, 80, 100, 150, or any other arbitrary top-N count unless the researcher explicitly instructs you to do so.** Never silently cap, prioritize, or discard records because of token limits, time constraints, citation count, or model convenience.
+- If the researcher accepts a corpus larger than 150 records, retain and export the full accepted corpus. The size itself is not a reason to exclude records.
 
-**1. Assess Relevance:** Read the abstract/metadata to score topical relevance:
-   - **High (3):** Directly addresses research question; primary focus. (Candidate for corpus)
-   - **Medium (2):** Indirectly addresses question; secondary focus. (Supporting context)
-   - **Low (1):** Tangentially related. (Exclude from corpus)
+**1. Preliminary Topical Triage (not screening):** This step supports later screening. It does not make final inclusion or exclusion decisions.
 
-**2. Journal quality — do not assess here.** Record the venue name in the mapping table but do not evaluate indexing status, quartile, or predatory risk. That assessment is the role of `journal-quality-check`, which runs after this skill in the pipeline. Do not mark any paper as "Excluded (Quality)" at this stage.
+Classify each record using title, abstract, and metadata only:
 
-**3. DOI spot-check:** After relevance scoring, randomly select 3 to 5 papers from the High-relevance group and verify their DOIs by resolving `https://doi.org/{doi}`. If any DOI fails to resolve, flag the paper as "DOI unverified" in the mapping table and report it to the user before exporting.
+| Triage status | Meaning | Action at this stage |
+|---|---|---|
+| Direct candidate | The central phenomenon appears to be a primary focus. | Retain for `corpus-screening`. |
+| Potential candidate | The record may address the question but relevance is ambiguous, secondary, or context-dependent. | Retain for `corpus-screening`. |
+| Insufficient metadata | Title, abstract, or metadata is insufficient for a defensible preliminary reading. | Retain for `corpus-screening` and flag the missing information. |
+| Clearly out of scope (proposed) | A pre-approved exclusion criterion is directly evidenced in the title, abstract, or metadata. | Do not remove yet. Add to the Obvious Exclusions Register for researcher confirmation. |
 
-**4. Snowballing is out of scope for this skill.** Forward snowballing (finding papers that cite your corpus) and backward snowballing (checking reference lists of included papers) are not part of this search step. If the review typology requires snowballing (e.g., systematic review), note it as a limitation in Section 5 of the deliverable and conduct it as a separate manual pass after corpus screening.
+- Never use preliminary topical triage as an inclusion decision.
+- Never classify a record as clearly out of scope because it has low citations, an unfamiliar venue, missing full text, or a sparse abstract.
+- The only records that may be proposed for removal are clearly out-of-scope records that meet a **pre-approved** criterion with direct evidence. For each such record, quote the relevant title, abstract, or metadata phrase and state the criterion code.
+- Present the complete **Obvious Exclusions Register** to the researcher and wait for their decision before removing any record. Records not explicitly approved for removal must remain in the candidate corpus.
 
-**5. Pipeline Export (CRITICAL):** Once the final list of included papers is determined (High and Medium relevance), you MUST save the raw OpenAlex JSON data for those papers to a local file (`/home/ubuntu/articles/openalex_corpus.json`). This JSON file is the required input for `bibliometric-scientometric-analysis`.
+| Record | Proposed status | Approved criterion | Direct evidence | Researcher decision |
+|---|---|---|---|---|
+| [Author, Year, Title] | Clearly out of scope | E1 | "[exact phrase]" | Approve removal / Retain |
 
-### Step 5 — Preliminary Summary (Brief, Abstract-Level Only)
+**2. Journal quality — do not assess here.** Record the venue name only. Do not evaluate indexing status, quartile, peer-review status, or predatory risk. Do not mark any paper as "Excluded (Quality)" at this stage. Those assessments belong to `journal-quality-check`, which runs separately in the pipeline.
 
-Produce a short, factual summary of the included papers. This is **not** a deep academic synthesis. Its purpose is to give the researcher a quick orientation to the corpus before moving to the next stage of the pipeline.
+**3. DOI metadata spot-check:** If at least three records contain DOIs, randomly select 3 to 5 records across the retained corpus and resolve each DOI through `https://doi.org/{doi}`. If a DOI fails to resolve, record "DOI unverified" in the mapping and report it to the researcher. A failed DOI check is a metadata flag, not a basis for exclusion at this stage.
 
-- Write **one or two sentences per included paper**, drawn strictly from the abstract and metadata. Do not infer, interpret, or elaborate beyond what the abstract states.
-- Group papers by the main themes or concepts that emerge naturally from the titles and abstracts.
-- Flag any papers where the abstract is absent or too sparse to summarize.
-- **Do not** write flowing academic prose, thematic arguments, or theoretical interpretations here. That work belongs in `deep-academic-synthesis`.
-- End the summary with a brief note on the most prominent gaps or patterns visible from the corpus at abstract level.
+**4. Snowballing is out of scope for this skill.** Forward snowballing (finding papers that cite the candidate corpus) and backward snowballing (checking reference lists) are not part of this search step. If the chosen review typology requires snowballing, list it as a limitation in the deliverable and conduct it as a separate pass after `corpus-screening`.
+
+**5. Audit-preserving pipeline export (CRITICAL):** Save both of the following files:
+
+- `/home/ubuntu/articles/openalex_all_retrieved.json` — every deduplicated record returned by the accepted search strategy, including records the researcher approved for obvious-exclusion removal.
+- `/home/ubuntu/articles/openalex_candidate_corpus.json` — every record retained after any researcher-approved obvious exclusions. This is the search-stage candidate corpus, not a final included corpus.
+
+Also save `/home/ubuntu/articles/search_triage_register.csv`, with one row per deduplicated record and the following fields: Title, Authors, Year, Venue, DOI, Query_Source, Triage_Status, Proposed_Criterion, Direct_Evidence, Researcher_Decision, and DOI_Verification_Status.
+
+`corpus-screening` uses this candidate corpus to make the researcher-controlled inclusion and exclusion decisions. After screening, create the final analysis corpus for `bibliometric-scientometric-analysis` by retaining only papers that the researcher marked Include.
+
+### Step 5 — Minimal Corpus Orientation (Metadata Only)
+
+Produce only a concise orientation to the candidate corpus. This stage must not substitute for researcher-controlled screening, quality appraisal, bibliometric analysis, or deep synthesis.
+
+Report the following:
+
+- The number of records returned by each approved query.
+- The deduplicated total, the number proposed as clearly out of scope, the number of removals approved by the researcher, and the final candidate-corpus total.
+- The year range, document-type distribution, language distribution when available, and the number of records with an abstract and DOI.
+- The number of DOI records spot-checked and any DOI metadata flags.
+- A short statement that the output is a search-stage candidate corpus and that no final screening decision, journal-quality judgment, methodological quality appraisal, thematic synthesis, or full-text analysis has been performed.
+
+Do **not** produce per-paper summaries, theme groupings, evidence-strength ratings, Context-Mechanism-Outcome configurations, literature gaps, conceptual claims, or flowing academic prose. Those activities belong to later skills after the researcher has selected the corpus.
 
 ### Step 6 — Produce the Deliverable
 
 Default to a **Markdown file** unless the user requests a Word document (use the `docx` skill for Word). The deliverable must be structured as follows:
 
 ```markdown
-# Integrative Literature Review: [Topic]
+# Literature Search Candidate Corpus: [Topic]
 
 ## 1. Approved Review Protocol
 - **Review Question:** [PICOTS/SPIDER]
-- **Scope & Boundaries:** [Databases, dates, languages]
-- **Methodology:** [The specific review typology selected by the user in Step 1]
+- **Scope and Boundaries:** [OpenAlex, dates, languages, document-type rules]
+- **Review Typology:** [The review type selected by the researcher]
+- **Downstream Plan:** [`journal-quality-check` → `corpus-screening` → `study-quality-assessment` where full texts are available]
 
-## 2. Search Strategy & Execution
-- **Boolean Queries:** [List exact queries used per database]
-- **Execution Summary:** [Total retrieved, total verified, total excluded]
+## 2. Search Strategy and Execution
+- **Approved Boolean Queries:** [List each exact query]
+- **Query Counts:** [Records returned by each query]
+- **Deduplication:** [Number removed and deduplicated total]
+- **Corpus-Size Decision:** [Researcher decision after the 150/500 consultation, if applicable]
+- **Approved Refinements or Metadata Filters:** [Exact changes, or "None"]
 
-## 3. Systematic Mapping (All Retrieved Sources)
-*All sources sorted by relevance score. Journal quality assessment is conducted separately in `journal-quality-check`.*
+## 3. Candidate-Corpus Register
+*This is not a final included corpus. It records preliminary topical triage only. Journal quality is assessed separately in `journal-quality-check`; final title/abstract inclusion and exclusion decisions are made by the researcher in `corpus-screening`.*
 
-| Cite Key | Title and Authors | Year | Venue | DOI | Relevance Score | Inclusion Decision |
-|---|---|---|---|---|---|---|
-| [Smith24] | Title... | 2024 | Higher Education | 10.xxxx/xxxx | High (3) | Included |
-| [Jones23] | Title... | 2023 | Journal of X | 10.xxxx/xxxx | Low (1) | Excluded (Relevance) |
-| [Brown22] | Title... | 2022 | Journal of Y | DOI unverified | High (3) | Included (DOI unverified — flag for user) |
+| Cite Key | Title and Authors | Year | Venue | DOI | Preliminary Triage Status | Direct Evidence or Metadata Note | Researcher Decision |
+|---|---|---|---|---|---|---|---|
+| [Smith24] | Title... | 2024 | Higher Education | 10.xxxx/xxxx | Direct candidate | Abstract addresses [phenomenon] as the study's stated aim | Retained for screening |
+| [Jones23] | Title... | 2023 | Journal of X | 10.xxxx/xxxx | Clearly out of scope (proposed) | E1: "[exact title/abstract phrase]" | Pending researcher confirmation |
+| [Brown22] | Title... | 2022 | Journal of Y | DOI unverified | Insufficient metadata | Abstract unavailable; DOI spot-check did not resolve | Retained for screening |
 
-## 4. Preliminary Summary (Abstract-Level)
-*One to two sentences per included paper, grouped by emerging theme. This is not a deep synthesis. For full academic synthesis, proceed to `deep-academic-synthesis`.*
+- **Full audit export:** `/home/ubuntu/articles/openalex_all_retrieved.json`
+- **Candidate-corpus export:** `/home/ubuntu/articles/openalex_candidate_corpus.json`
+- **Triage register:** `/home/ubuntu/articles/search_triage_register.csv`
 
-### [Theme / Concept Group Name]
-- **[Cite Key]** [Author(s), Year]: [One to two factual sentences drawn strictly from the abstract.]
+## 4. Minimal Corpus Orientation
+- **Retrieved and deduplicated totals:** [Counts]
+- **Candidate-corpus total:** [Count]
+- **Proposed and researcher-approved obvious exclusions:** [Counts and criteria]
+- **Year range, document types, and languages:** [Metadata profile]
+- **Abstract and DOI coverage:** [Counts]
+- **DOI spot-check:** [Number checked and metadata flags]
 
-*(Repeat for all included papers, grouped by theme)*
+*No final screening decision, journal-quality judgment, methodological quality appraisal, full-text analysis, thematic synthesis, evidence-strength rating, or literature-gap analysis has been performed at this stage.*
 
-**Patterns and gaps visible at abstract level:** [Brief note on what the corpus seems to converge on, and where obvious gaps exist.]
-
-## 5. Notes & Limitations
-- [Coverage gaps, methodological limitations of the review, papers that couldn't be fully verified or accessed]
-- *Note: The preliminary summary above is grounded in abstracts only. Deep thematic analysis, theoretical interpretation, and academic prose synthesis should be conducted using the `deep-academic-synthesis` skill.*
+## 5. Notes and Limitations
+- [Any search coverage constraints, unresolved metadata, and any required snowballing pass]
+- *The output is a search-stage candidate corpus. The researcher must use `corpus-screening` to make final inclusion and exclusion decisions before any downstream analysis.*
 ```
 
 ## Next Steps in Pipeline
-- **`bibliometric-scientometric-analysis`** — To generate visual science mapping, co-authorship networks, and citation trajectory plots using the OpenAlex JSON exported in Step 4.
-- **`deep-academic-synthesis`** — If the user has full texts available and wants to move from abstract-level mapping to deep, section-by-section academic synthesis.
+- **`journal-quality-check`** — Assess journal/source credibility separately. Do not retroactively treat its output as a substitute for researcher-led eligibility screening.
+- **`corpus-screening`** — Make final title/abstract inclusion and exclusion decisions using the candidate corpus and the researcher-approved criteria. This is the required next step before analysis.
+- **`study-quality-assessment`** — After screening and only when full texts are available, appraise the methodological quality of the researcher-included papers.
+- **`bibliometric-scientometric-analysis`** — After final screening, generate visual science mapping and related analyses from the researcher-included corpus.
+- **`deep-academic-synthesis`** — After final screening and when full texts are available, move to researcher-controlled, section-by-section synthesis.
 
 ## See Also
 - `references/risk_checklist.md` for hallucination failure modes.
