@@ -1,6 +1,6 @@
 ---
 name: deep-academic-synthesis
-description: Synthesize academic literature in depth, grounded strictly in retrieved texts, with the human researcher in full control of the intellectual architecture. Uses a three-stage model (Corpus Overview -> Thematic Agenda Setting -> Incremental Prose Generation) to prevent cognitive outsourcing. Enforces strict anti-hallucination mode (say "I don't know", cite every claim, quote before analyzing), language constraints, and RAG grounding throughout.
+description: Synthesize academic literature in depth, grounded strictly in retrieved texts, with the human researcher in control of the intellectual architecture. Uses Corpus Overview, Thematic Agenda Setting, and Incremental Prose Generation. Enforces direct quotation, claim-level verification, Popay-informed narrative-synthesis options, semantic provenance mapping, and explicit uncertainty controls to reduce factual, logical, and contextual hallucination.
 ---
 
 # 🌐 LANGUAGE RULE
@@ -31,7 +31,7 @@ Wait for the user's answer and use that variant consistently throughout the sess
 
 When an AI produces a complete synthesis in one shot, the researcher's role collapses from active synthesist to passive reviewer. The intellectual work of deciding which themes matter, how findings relate, and what the argument should be gets delegated, resulting in cognitively outsourced writing that may be technically correct but epistemologically hollow.
 
-This skill solves that by acting as a pipeline continuation of the `verified-paper-search` skill. It shifts from breadth (abstracts) to depth (full texts) while keeping the human researcher in strict control of the intellectual architecture through a three-stage, interactive process.
+This skill continues the pipeline after researcher-controlled screening. It shifts from candidate-corpus metadata and abstracts to full-text evidence, while keeping the human researcher in control of the intellectual architecture through a three-stage, interactive process. It does not treat the search-stage orientation as a synthesis or as evidence beyond the retrieved records.
 
 ---
 
@@ -71,6 +71,18 @@ Do not paraphrase a source and then analyze the paraphrase. The quote must come 
 
 In Mode A (abstract-only), direct quotation from abstracts is required in the same way. Tag every such quote with `[Abstract only]`.
 
+### Rule 4 — Match the Control to the Hallucination Risk
+
+Use observable controls rather than claiming access to the model's internal reasoning.
+
+| Risk | Required control |
+|---|---|
+| **Factual** | Retrieve the relevant corpus passage, quote it, preserve the source location, and state uncertainty when the passage is absent. |
+| **Logical** | For comparative, causal, theoretical, or multi-study claims, use the Claim Verification Ledger before drafting. |
+| **Contextual** | Build and refresh a section-aware evidence map. Do not aggregate across documents or sections when the provenance record is incomplete. |
+
+Retrieval, prompting, and verification are **governance controls**. They make evidence trails inspectable. They do not prove that an AI reasoning trace exposes internal cognition.
+
 ---
 
 ## Language and Stylistic Constraints (CRITICAL)
@@ -94,16 +106,17 @@ Before analyzing the texts or writing the synthesis, prompt the user to establis
 **Prompt the user with these questions:**
 
 1. **Pipeline Connection:**
-   - Do you have an existing AI-generated synthesis (e.g., from `verified-paper-search`) that I should use as a starting point?
+   - Do you have an existing draft, notes, or prior AI-generated text that I should critically compare with the included corpus? Treat it as a draft only. Do not use it as evidence unless its claims can be traced to the retrieved materials.
+   - Have you completed `corpus-screening` and, where relevant, `study-quality-assessment`? If yes, load their exports as contextual metadata. Do not treat screening or appraisal results as a substitute for reading the underlying texts.
    - **Do you have full PDF files for the included papers, or only abstracts/metadata?** This determines the reading mode:
-     - **Mode A (Abstract-Only):** You have only abstracts or the mapping table from `verified-paper-search`. Every claim will be tagged `[Abstract only]` and this limitation will be disclosed in the deliverable.
+     - **Mode A (Abstract-Only):** You have abstracts or metadata for the researcher-included corpus but no full texts. Every claim will be tagged `[Abstract only]` and this limitation will be disclosed in the deliverable.
      - **Mode B (Full-Text):** You have PDF files for some or all papers. The synthesis will be grounded in full-text evidence, read in 4-page batches to avoid context-window errors.
-   - Should I treat the existing synthesis as a draft to be deepened, or as a reference to be critically compared against what the full texts actually say?
 2. **Review Type:** What is the overarching methodology of this review? (Systematic, Scoping, Integrative, Qualitative Meta-Synthesis, or Critical Interpretive Synthesis).
 3. **Synthesis Type & Discursive Format:** How should the text be structured? (Argumentative-Expository, Expository/Descriptive, Comparative, Critical, or a combination).
 4. **Depth of Analysis:** Should the synthesis focus on high-level thematic mapping, or granular, detailed extraction of specific variables/mechanisms?
 5. **Target Audience/Purpose:** Is this synthesis for a dissertation/thesis chapter, an empirical article's background section, or a standalone review article?
 6. **Citation Format:** What format should the references and citations follow (e.g., APA 7th, Vancouver, Harvard)?
+7. **Optional synthesis protocol:** Would you like a **Popay-informed narrative-synthesis mode**? Explain that this records four activities, an initial theoretical account, preliminary synthesis, exploration of relationships, and assessment of robustness. It does not impose themes. The researcher must approve the theoretical account and relationship questions before prose is drafted.
 
 **🛑 STOP: Wait for the user to answer these questions and provide the corpus before proceeding to Stage 1.**
 
@@ -119,7 +132,7 @@ Based on the user's answer to the Pre-Flight question about full text availabili
 
 **Mode A — Abstract-Only Mode** (when the user does not have full PDFs)
 
-Use this mode when the user has only abstracts, metadata, or the output table from `verified-paper-search`. In this mode:
+Use this mode only when the researcher-included corpus has abstracts or metadata but no full texts. Do not use a pre-screening candidate-corpus table from `verified-paper-search` as a synthesis corpus unless the researcher explicitly confirms that its records are the intended included set. In this mode:
 - Read the abstracts and metadata for all included papers.
 - Apply Rule 3 (Quote Before Analyzing) to abstracts: extract the exact abstract text before drawing any observation from it.
 - Label every claim in the synthesis with the tag `[Abstract only]`.
@@ -127,34 +140,21 @@ Use this mode when the user has only abstracts, metadata, or the output table fr
 
 **Mode B — Full-Text Mode** (when the user has PDF files)
 
-If the user has provided PDF files, you **MUST NOT read any PDF in full**. Reading a full PDF will either crash the session with an unrecoverable context-window error or produce shallow output. There are no exceptions.
+If the user has provided PDF files, you **MUST NOT read any PDF in one uninterrupted context**. Every PDF, including short PDFs, must be processed through the universal batch-reading rule. There are no length-based exceptions.
 
-For every PDF provided, follow this protocol:
+For every PDF provided, follow this semantic-provenance protocol:
 
-1. **Verify the file** exists at the provided path.
-2. **Copy it** to `/home/ubuntu/articles/` if it is not already there.
-3. **Split it** into 4-page chunks:
-   ```bash
-   mkdir -p /home/ubuntu/articles/split_<pdf_name>
-   python3 /home/ubuntu/skills/split-pdf/scripts/split_pdf.py \
-     /home/ubuntu/articles/<pdf_name>.pdf \
-     /home/ubuntu/articles/split_<pdf_name>
-   ```
-   If PyPDF2 is not installed, run `sudo pip3 install PyPDF2` first.
-4. **Read exactly 3 split files at a time** (~12 pages per batch) using the `file` tool.
-5. **After each batch**, update a running `notes.md` file with structured dimensions:
-   - Research question and purpose
-   - Methodology and study design
-   - Data sources, sample, time period
-   - Key findings and results (with direct quotes and page references)
-   - Theoretical frameworks referenced
-   - Geographic/contextual scope
-   - Any passage where the text contradicts or complicates the abstract
-6. **Pause after each batch** and confirm with the user before reading the next 3 splits.
-
-**Exception:** Papers shorter than approximately 15 pages may be read directly without splitting.
+1. **Verify and register the file.** Confirm the path, assign a stable `Document_ID`, and copy it to `/home/ubuntu/articles/` if needed.
+2. **Create a section map before analysis.** Identify page ranges for abstract, introduction, methods, results or findings, discussion, conclusion, tables, appendices, and any field-specific sections. Save `/home/ubuntu/articles/evidence_maps/<Document_ID>_section_map.csv` with Document_ID, Section, Start_Page, End_Page, and Notes.
+3. **Split into bounded page chunks.** Use the split-pdf protocol to create 4-page chunks. Map every chunk to the section map. A chunk is a delivery unit, not the intellectual unit of analysis.
+4. **Read by coherent section in small batches.** Read up to three split files at a time. When a section crosses a batch boundary, record the unfinished section and resume it before drawing an interpretation. Never read a whole document directly because it is short.
+5. **After each batch, update the evidence ledger.** Save direct quotations with Document_ID, section, page, chunk, evidence type, and a provisional interpretation. Record research question, method, sample, data sources, findings, theory, contextual scope, and any contradiction with the abstract.
+6. **Pause after each batch** and confirm with the user before reading the next three splits.
+7. **Refresh before cross-paper drafting.** Before drafting any section that compares papers, reload the relevant evidence-ledger rows and section-map references. If a claim crosses documents or sections without traceable evidence, mark it unsupported and do not draft it.
 
 #### 1b. Corpus Overview
+
+If the researcher selected Popay-informed narrative-synthesis mode, record an **initial theoretical account** at this point. The AI may describe theories and mechanisms explicitly present in the corpus, but it must not propose the account as the review's architecture. Present it as a provisional evidence map for the researcher to approve, revise, or reject.
 
 Using the extracted notes and any abstracts or prior synthesis provided, produce a structured overview for the user:
 
@@ -171,7 +171,7 @@ Using the extracted notes and any abstracts or prior synthesis provided, produce
 
 ### Stage 2 — Thematic Agenda Setting (User-Driven)
 
-Now that the user has seen the corpus overview, ask them to propose the themes, arguments, or questions they want the synthesis to address.
+Now that the user has seen the corpus overview, ask them to propose the themes, arguments, or questions they want the synthesis to address. If Popay-informed mode is selected, also ask the researcher to approve or revise the provisional theoretical account and specify which relationships across studies should be examined, for example by population, context, design, exposure, mechanism, outcome, or theoretical framework.
 
 Once the user provides their agenda, check each proposed theme against the corpus and report back:
 - Which papers support the theme, with specific evidence (quote or abstract passage)?
@@ -189,10 +189,12 @@ With the agenda finalized, draft the synthesis **one section at a time**, strict
 
 **Paragraph-level protocol:**
 
-1. **Extract first.** Before writing a paragraph, list the quotes or abstract passages you will use as evidence for that paragraph. Do not write prose until the evidence is assembled.
-2. **Write using MEAL or SEED.** Introduce the theme (Main idea/Statement), present the evidence as direct quotes or attributed abstract passages (Evidence), analyze what the evidence shows (Analysis/Discussion), and transition to the next paragraph (Lead out).
-3. **Cite inline.** Every sentence that makes a factual claim must carry an inline citation in the user's chosen format.
-4. **Flag gaps.** If a paragraph requires a claim that cannot be grounded in the corpus, write: "The corpus does not provide sufficient evidence to address [specific point]. This gap may warrant further search."
+1. **Extract first.** Before writing a paragraph, list the quotes or abstract passages and their Document_ID, section, and page references. Do not write prose until the evidence is assembled.
+2. **Use the Claim Verification Ledger when required.** For any comparative, causal, theoretical, or multi-study claim, decompose the claim into component propositions. Form focused verification questions, retrieve the exact supporting or contradictory passages, and mark every proposition Supported, Qualified, Contradicted, or Unsupported. Revise or retract the sentence when any necessary proposition is unsupported. Do not use the ledger mechanically for trivial factual descriptions.
+3. **Write using MEAL or SEED.** Introduce the theme (Main idea/Statement), present the evidence as direct quotes or attributed abstract passages (Evidence), analyze only what the evidence permits (Analysis/Discussion), and transition to the next paragraph (Lead out).
+4. **Cite inline.** Every sentence that makes a factual claim must carry an inline citation in the user's chosen format.
+5. **Flag gaps.** If a paragraph requires a claim that cannot be grounded in the corpus, write: "The corpus does not provide sufficient evidence to address [specific point]. This gap may warrant further search."
+6. **Popay-informed robustness check, if selected.** Before finalizing a section, record what evidence supports the preliminary synthesis, what relationships were examined, how heterogeneity affects interpretation, and what methodological or reporting limitations constrain the conclusion. Do not translate counts of papers into a claim of consensus.
 
 **After each section:**
 
@@ -207,10 +209,17 @@ Ask the user to approve, revise, or redirect before drafting the next section. R
 
 ### Final Deliverable
 
-The completed synthesis must include a **Transparency Log** as a final appendix. The log records:
+The completed synthesis must include a **Transparency Log** and an **evidence-control appendix**. These records allow the researcher to audit every AI judgment and override any entry before submitting the work.
 
-| Section | Claim | Source | Evidence Type | Retracted? |
-|---|---|---|---|---|
-| [Section name] | [Summarized claim] | [Author, Year, p. X or DOI] | Full text / Abstract / Metadata | No / Yes (reason) |
+| Section | Claim | Component Propositions Verified? | Source and Location | Evidence Type | Verification Status | Publication Status Check |
+|---|---|---|---|---|---|---|
+| [Section name] | [Summarized claim] | Yes / Not required | [Author, Year, Document_ID, section, p. X or DOI] | Full text / Abstract / Metadata | Supported / Qualified / Contradicted / Retracted | Verified by `scientific-reference-reviewer` / Not assessed |
 
-This log allows the researcher to audit every AI judgment and override any entry before submitting the work.
+Also export:
+
+- `claim_verification_ledger.csv` for claims that required a CoVe-style verification pass.
+- `evidence_ledger.csv` with Document_ID, source location, quotation, evidence type, and draft-section use.
+- `section_map_index.csv` linking each document's semantic section map to its evidence ledger.
+- `popay_synthesis_record.md` when Popay-informed mode was selected, documenting the researcher-approved theoretical account, preliminary synthesis, explored relationships, and robustness assessment.
+
+The publication-status field must report only a check actually performed by `scientific-reference-reviewer`. Do not infer that a source is unretracted because no status record is present.

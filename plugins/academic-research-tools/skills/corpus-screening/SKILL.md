@@ -1,6 +1,6 @@
 ---
 name: corpus-screening
-description: Screen a corpus of papers retrieved by verified-paper-search against user-defined inclusion/exclusion criteria. Produces a screened corpus list with decisions (Include/Exclude/Uncertain) and exports results to CSV for use in subsequent pipeline stages.
+description: Screen a candidate corpus against researcher-defined inclusion/exclusion criteria. Supports one-researcher or two-independent-human-screener workflows, optional AI pre-flagging and queue prioritization that never make decisions, optional SPAR-4-SLR or PRISMA-oriented reporting fields, and CSV exports for downstream appraisal, bibliometrics, and synthesis.
 ---
 
 # 🌐 LANGUAGE RULE
@@ -34,6 +34,7 @@ Before executing this skill, you MUST adhere to the following rules:
 3. **Transparent Reasoning.** For every paper where you suggest Exclude or Uncertain, you must state which criterion triggered the suggestion and quote the relevant phrase from the title or abstract.
 4. **Preserve Uncertain Papers.** Papers marked Uncertain must be retained in the corpus for user review. They must not be silently dropped.
 5. **Criteria Primacy.** The user's criteria override any default logic. If the user's criteria are ambiguous for a specific paper, flag the paper as Uncertain and ask the user for clarification.
+6. **Independent-Screener Integrity.** In two-screener mode, human screeners must make their first-pass decisions independently. The AI may calculate agreement and organize disagreements, but it must not generate a decision that substitutes for either screener or adjudicate a disagreement.
 
 ---
 
@@ -69,7 +70,26 @@ Please define your inclusion and exclusion criteria for this review. You may ada
 
 ---
 
-After the user confirms or revises the criteria, ask the following question before proceeding to Step 2:
+After the user confirms or revises the criteria, first ask the following questions and record each answer before proceeding to Step 2:
+
+---
+
+**SCREENING CONFIGURATION**
+
+1. **How many human researchers will screen this corpus?**
+   - **One researcher** — one researcher makes all decisions. The AI can provide optional pre-flags or queue ordering, but the researcher makes every final decision.
+   - **Two independent researchers** — each researcher screens the same records independently before seeing the other person's decisions. The skill then calculates agreement, presents disagreements, and records the human consensus or third-person adjudication.
+
+2. **Was a reporting / conduct protocol selected in `verified-paper-search`?**
+   - **SPAR-4-SLR** — label this stage as *Arranging: Purification* and report included and excluded counts by criterion.
+   - **PRISMA 2020 and PRISMA-S** — preserve all record-flow counts and exclusion reasons for a later PRISMA flow diagram.
+   - **Default audit structure** — use the standard screening register.
+
+If the corpus includes an inherited protocol choice, show it to the researcher and ask for confirmation rather than asking them to recreate the decision.
+
+---
+
+Then ask the following question before proceeding to Step 2:
 
 ---
 
@@ -83,7 +103,13 @@ Type **yes** to enable pre-flagging or **no** to screen without it.
 
 ---
 
-Wait for the user's answer and record the preference before proceeding to Step 2.
+After recording the AI pre-flag preference, ask:
+
+**Would you like optional active-learning queue prioritization? (yes/no)**
+
+If enabled, after at least 20 completed human decisions that include both Include and Exclude outcomes, the AI may rank the *next* unscreened records by estimated relevance. It must display that this is an ordering aid only. It must not suppress, remove, classify, or declare screened any record. The researcher can switch it off at any time, inspect the default order, and must ultimately decide every record.
+
+Wait for the user's answers and record the screener mode, reporting protocol, pre-flag preference, and queue-prioritization preference before proceeding to Step 2.
 
 ---
 
@@ -91,11 +117,12 @@ Wait for the user's answer and record the preference before proceeding to Step 2
 
 Ask the user to provide the corpus. Accepted formats:
 
-- A CSV or Excel file exported from the `verified-paper-search` skill (columns expected: Title, Authors, Year, Source, DOI, Abstract, Relevance Score, Journal Quality).
+- `openalex_candidate_corpus.json` or `search_triage_register.csv` exported by `verified-paper-search`.
+- A CSV or Excel candidate corpus containing, where available, Title, Authors, Year, Source or Venue, DOI, Abstract, Query_Source, and Preliminary_Triage_Status.
 - A plain text list of paper titles with abstracts pasted directly into the conversation.
 - A BibTeX or RIS file.
 
-If the corpus comes from the `verified-paper-search` output, confirm that the Relevance Score and Journal Quality columns are present, as these will be displayed alongside each paper during screening.
+If a separate `journal-quality-check` output is provided, retain any venue-credibility note as optional contextual metadata. Do not treat it as an eligibility decision unless the researcher explicitly included a source-quality criterion in the approved screening criteria. Do not require journal-quality data to begin screening.
 
 Parse the corpus and present the user with a summary:
 
@@ -116,7 +143,8 @@ Present papers to the user for screening. For each paper, display the following 
 [N of Total] — [Title]
 Authors: [Authors] | Year: [Year] | Source: [Journal/Conference]
 DOI: [DOI or URL if available]
-Relevance Score: [High / Medium / Low] | Journal Quality: [Q1/Q2/Q3/Q4 or N/A]
+Search-stage triage: [Direct candidate / Potential candidate / Insufficient metadata / Not available]
+Optional venue-credibility note: [Only if separately supplied; never a screening decision unless an approved criterion requires it]
 
 Abstract:
 [Full abstract text]
@@ -134,13 +162,23 @@ The user responds with a single letter for each paper:
 
 **Batch size:** Present papers in batches of 10 by default. After each batch, ask the user whether to continue with the next batch or pause.
 
+**Two-independent-screener mode:** Create two identical blank screening files, `/home/ubuntu/articles/screening_screener_1.csv` and `/home/ubuntu/articles/screening_screener_2.csv`, with stable `Record_ID` values and no AI decision populated. Each human screener completes their own file without seeing the other file. Do not compare or reconcile decisions until both files are supplied.
+
+**Optional active-learning queue prioritization:** When the researcher enabled it and the minimum evidence threshold is met, show the next batch in the selected priority order and mark the ordering as "AI queue priority only." Keep every remaining record in the export and allow the researcher to request the original order at any time. Do not use a priority score as a final decision, an exclusion reason, or a stopping rule.
+
 **Papers without abstracts:** Flag these explicitly. Present the title and metadata only, note that no abstract is available, and suggest marking as Uncertain unless the title alone is clearly outside scope.
 
 ---
 
-# Step 4: Uncertain Papers — Second Pass
+# Step 4: Reconciliation and Uncertain Papers — Second Pass
 
-After all papers have been screened once, present all Uncertain papers together for a second-pass review.
+**If one-researcher mode was selected:** After all papers have been screened once, present all Uncertain papers together for a second-pass review.
+
+**If two-independent-screener mode was selected:** First validate that both completed files contain the same `Record_ID` values and no merged or overwritten decisions. Calculate the raw agreement and unweighted Cohen's kappa across the three first-pass categories (Include, Exclude, Uncertain). Report the number of records compared, agreement percentage, kappa value, and any records excluded from the calculation because a decision is missing. Do not present a kappa threshold as an automatic pass/fail rule.
+
+Then create a disagreement register containing only records where the screeners disagree. Show each paper's title, abstract, criterion evidence, Screener_1_Decision, Screener_2_Decision, and both recorded reasons. Ask the human researchers to enter a consensus decision, or name a third human adjudicator. The AI may quote the record and the pre-approved criteria but must not supply the final reconciliation decision.
+
+After reconciliation, present all records that remain Uncertain together for a second-pass review.
 
 For each Uncertain paper, display the same information as in Step 3 and add a note summarizing why it was flagged as Uncertain in the first pass (either the user's own note or the AI pre-flag reason).
 
@@ -185,13 +223,23 @@ Save the full screened corpus to `/home/ubuntu/articles/screened_corpus.csv` wit
 | Source | Journal or conference name |
 | DOI | DOI or URL |
 | Abstract | Abstract text |
-| Relevance_Score | High / Medium / Low (from verified-paper-search) |
-| Journal_Quality | Q1/Q2/Q3/Q4 or N/A (from journal-quality-check) |
-| Screening_Decision | Include / Exclude / Uncertain |
+| Search_Triage_Status | Search-stage triage if supplied, otherwise blank |
+| Venue_Credibility_Note | Optional output from `journal-quality-check`, not an eligibility decision unless an approved criterion requires it |
+| Reporting_Protocol | Default audit structure / PRISMA 2020 and PRISMA-S / SPAR-4-SLR |
+| Screener_Mode | One researcher / Two independent researchers |
+| Screener_1_Decision | Include / Exclude / Uncertain (or the one researcher's decision) |
+| Screener_1_Reason | Criterion code and short rationale |
+| Screener_2_Decision | Include / Exclude / Uncertain (blank in one-researcher mode) |
+| Screener_2_Reason | Criterion code and short rationale (blank in one-researcher mode) |
+| Screening_Decision | Final Include / Exclude / Uncertain after second pass or human reconciliation |
 | Exclusion_Criterion | E1–E6 or user-defined code (blank for included papers) |
 | Exclusion_Reason | Brief reason text (blank for included papers) |
-| Screened_By | Researcher name or initials (ask user) |
-| Screening_Date | Date of screening session |
+| Reconciliation_Status | Not applicable / Agreement / Human consensus / Third-person adjudication / Pending |
+| Adjudicator | Human name or initials, if applicable |
+| Screening_Date | Date of final decision |
+| Queue_Priority_Used | Yes / No. This records ordering only, not a decision basis. |
+
+Also save `/home/ubuntu/articles/screening_agreement_report.md` in two-independent-screener mode. It must document the comparison population, raw agreement, Cohen's kappa, missing-decision handling, disagreement count, and human reconciliation process. If SPAR-4-SLR was selected, include a **Purification** table with included and excluded counts by criterion. If PRISMA 2020 and PRISMA-S was selected, include a flow-diagram-ready counts table covering records received, duplicates removed before screening, title/abstract decisions, full-text-pending records, and final inclusions.
 
 Inform the user that the CSV can be opened directly in Excel or Google Sheets, and that the Included and Uncertain rows form the input corpus for the next pipeline stage.
 
@@ -213,9 +261,10 @@ The screened corpus has been saved to `/home/ubuntu/articles/screened_corpus.csv
 **Next recommended steps:**
 
 1. If you have not yet run `study-quality-assessment`, apply it to the Included corpus to assess methodological quality before synthesis.
-2. If you have already completed `journal-quality-check`, the Journal Quality column in the export allows you to filter by quartile before proceeding.
+2. If you have completed `journal-quality-check`, retain its result as separate source-credibility information. Do not use it to alter the final screening decision unless the researcher had explicitly defined a source-quality eligibility criterion.
 3. Pass the Included corpus to `bibliometric-scientometric-analysis` for co-authorship, keyword co-occurrence, and topic modelling analysis.
 4. Pass the Included corpus to `deep-academic-synthesis` for full-text thematic synthesis.
+5. If SPAR-4-SLR was selected, treat this completed export as **Arranging: Purification**. If PRISMA 2020 and PRISMA-S was selected, use the preserved counts to produce the later flow diagram.
 
 ---
 

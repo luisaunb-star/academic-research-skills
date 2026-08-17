@@ -1,6 +1,6 @@
 ---
 name: bibliometric-scientometric-analysis
-description: Generate visual science mapping, co-authorship networks, keyword evolution, citation trajectory plots, LDA topic modelling, and IRAMUTEQ-style hierarchical descending classification using pyBibX, spaCy, Gensim, and scikit-learn. Takes the OpenAlex JSON corpus exported by `verified-paper-search` as input. Allows the researcher to select specific analyses to run, providing data-grounded interpretive commentary for each output.
+description: Generate visual science mapping, co-authorship networks, keyword evolution, citation trajectory plots, LDA topic modelling, and a Reinert-style hierarchical descending classification using pyBibX, spaCy, Gensim, correspondence analysis, and scikit-learn. Takes the researcher-included corpus exported after `corpus-screening` as input. Allows the researcher to select specific analyses and produces data-grounded interpretive commentary with explicit methodological limitations.
 ---
 
 # 🌐 LANGUAGE RULE
@@ -37,10 +37,10 @@ This skill answers those questions by processing the OpenAlex JSON corpus genera
 
 ### Pre-Flight: Verify Input Corpus
 
-Before starting, locate the JSON file exported by `verified-paper-search` (e.g., `/home/ubuntu/articles/openalex_corpus.json`).
+Before starting, locate the **researcher-included corpus** exported by `corpus-screening` (for example, `/home/ubuntu/articles/screened_corpus.csv` filtered to `Screening_Decision = Include`, or a derived JSON file of included records).
 
-**If the file does not exist:** Ask the user to provide it or to run `verified-paper-search` first.
-**If the file exists:** Read the file to determine the corpus size (number of papers) and confirm that abstracts are present, since Groups 5 and 9 require abstract text.
+**If the file does not exist:** Ask the user to provide it or to run `corpus-screening` first. Do not use an unfiltered search-stage candidate corpus unless the researcher explicitly requests a descriptive analysis of retrieval output rather than an analysis corpus.
+**If the file exists:** Read the file to determine the corpus size, confirm that only researcher-included records are in scope, and confirm that abstracts are present because Groups 5 and 9 require abstract text.
 
 ### Step 1 — Select Analyses (User Driven)
 
@@ -63,7 +63,7 @@ Do not run all analyses blindly. Present the following menu to the user, grouped
 | Submethod | Method | Output | Min. Corpus |
 |---|---|---|---|
 | **9a. LDA Topic Modelling** | spaCy preprocessing + Gensim LDA + pyLDAvis | Interactive HTML bubble chart of topic clusters with top terms per topic | 15+ |
-| **9b. Hierarchical Descending Classification (CHD)** | spaCy + binary ECU matrix + divisive chi-square splitting (Reinert method) | Split-history dendrogram with chi-square values per split and top terms per lexical class (IRAMUTEQ-style) | 15+ |
+| **9b. Hierarchical Descending Classification (CHD)** | spaCy + binary text-segment matrix + correspondence-analysis-guided divisive chi-square classification (Reinert-style) | Split-history tree, chi-square class profiles, and optional stability cross-classification | 15+ |
 
 **🛑 STOP: Ask the user which groups (and, for Group 9, which submethods) they want to run. Wait for their selection before proceeding.**
 
@@ -76,14 +76,17 @@ Once the user selects the analyses, prepare the environment by installing the re
 sudo pip3 install pybibx
 
 # Group 9a and 9b (text analysis)
-sudo pip3 install spacy gensim pyldavis
+sudo pip3 install spacy gensim pyldavis prince scipy scikit-learn
 python3 -m spacy download en_core_web_sm
+
+# Optional: closest open-source reference implementation for strict Reinert-style replication
+# Install and use the R package rainette only when the researcher requires an R-based implementation.
 
 ```
 
-Then write a Python script to load the OpenAlex JSON into pyBibX. If the JSON structure from the search step needs adaptation, format it into the CSV structure pyBibX expects before running the science mapping analyses.
+Then write a Python script to load the researcher-included corpus from `screened_corpus.csv` or an explicitly derived included-record JSON file into pyBibX. If the source structure needs adaptation, preserve `Record_ID`, screening decision, and source metadata while formatting the included records into the CSV structure pyBibX expects. Never silently restore excluded or uncertain records.
 
-For Group 9, extract the abstract text from the JSON into a list of strings for the text analysis pipeline.
+For Group 9, extract abstract text only from the researcher-included records into a list of strings for the text-analysis pipeline.
 
 ### Step 3 — Execution & Output Generation
 
@@ -99,22 +102,19 @@ Execute the selected analyses using Python. Save all outputs into a dedicated di
 4. **Visualization:** Use `pyLDAvis.gensim_models.prepare()` to generate an interactive HTML bubble chart saved to `lda_topics.html`.
 5. **Top terms table:** Extract the top 10 terms per topic and present them in a Markdown table.
 
-**For Group 9b (Hierarchical Descending Classification, IRAMUTEQ-style):** Run the following pipeline:
+**For Group 9b (Hierarchical Descending Classification, Reinert-style):** Before running, ask the researcher to select the maximum number of lexical classes `K` (suggest 3 to 7) and whether to run the **optional stability check**. Explain that the analysis classifies text segments by their co-occurring lexical forms. It does not cluster whole papers.
 
-1. **ECU segmentation:** Split each abstract into Elementary Context Units (ECUs) of approximately 40 characters each, breaking at sentence or clause boundaries where possible. Each ECU retains a reference to its source document. Discard ECUs shorter than 10 characters.
-2. **Preprocessing with spaCy:** Lemmatize each ECU and filter to content words only (POS tags NOUN, VERB, ADJ). Remove tokens shorter than 3 characters and stopwords.
-3. **Binary term-by-ECU matrix:** Use `sklearn.feature_extraction.text.CountVectorizer` with `binary=True` to build a presence/absence matrix where rows are ECUs and columns are terms. Do NOT use TF-IDF — the Reinert method requires binary co-occurrence, not term frequency.
-4. **Divisive chi-square splitting:** Implement a recursive bisection loop following the Reinert logic:
-   - Start with all ECUs in one class.
-   - At each step, select the largest current class.
-   - Compute a chi-square-based binary split of that class: for each possible partition of the ECUs in the class into two sub-groups, find the split that maximises the chi-square statistic between the two resulting sub-groups (use `scipy.stats.chi2_contingency` on the binary term counts).
-   - Divide the class into the two sub-groups found.
-   - Repeat until K classes are reached. Ask the user to select K before running (suggested range: 3 to 7).
-5. **Chi-square term association:** For each final class, compute the chi-square statistic for each term by comparing its frequency in the ECUs of that class against its frequency in all other ECUs. Rank terms by descending chi-square value.
-6. **Dendrogram:** Render a split-history dendrogram (not a Ward linkage tree) using `matplotlib`, showing the chi-square value at each split node and annotating the top 5 terms per final class. Save as `chd_dendrogram.png`.
-7. **Class profile table:** Present the top 10 terms per class ranked by chi-square, the number of ECUs per class, and the percentage of total ECUs covered by each class.
+1. **Text-segment construction:** Split each abstract into Elementary Context Units (ECUs) of approximately **40 word tokens**, adjusting at punctuation boundaries where possible. Preserve `Source_Document_ID`, ECU order, original text, and segment length. Discard segments with fewer than 10 retained content forms. The 40-token setting follows the default used in `rainette`'s public `split_segments()` documentation. Do not describe these units as 40 characters.
+2. **Preprocessing with spaCy:** Lemmatize each ECU and retain content words only (NOUN, VERB, ADJ). Remove stopwords, tokens shorter than three characters, and corpus-specific noise terms that the researcher approves. Preserve the preprocessing dictionary and removal rationale.
+3. **Binary ECU-by-term matrix:** Use `CountVectorizer(binary=True)` to build a presence/absence matrix with ECUs as rows and terms as columns. Do **not** use TF-IDF or raw-frequency weights. Apply documented minimum-frequency and contingency-coefficient thresholds before splitting, and report the thresholds used.
+4. **Correspondence-Analysis-guided divisive classification:** Start with all eligible ECUs in one class. For the class being split, run Correspondence Analysis on its binary ECU-by-term matrix. Use the first correspondence-analysis dimension to form candidate partitions, then evaluate the candidate split with chi-square separation on the term-by-class contingency structure. Retain the split only when it meets the documented minimum-size and separation criteria. Continue recursively until the selected `K` is reached or no valid split remains. Do not use Ward clustering or a TF-IDF document matrix.
+5. **Class-selection and stopping record:** For every attempted split, record parent class size, child sizes, chi-square statistic, degrees of freedom, p-value where computable, retained/discarded status, and the reason a split stopped. The final number of classes may be lower than `K` if the data do not support further valid partitions. Never force a split merely to reach a requested number.
+6. **Chi-square term association:** For each final class, compare each term's presence in that class against all other ECUs. Report positive association only when the class-level association is supported by the chi-square result and term frequency is sufficient. Rank the top 10 associated terms by chi-square, with class and outside-class counts.
+7. **Split-history tree:** Render a split-history tree, not a Ward linkage dendrogram, using `matplotlib`. Label each retained split with parent/child ECU counts and the chi-square statistic. Annotate final leaves with the five highest associated terms. Save as `chd_split_history.png`.
+8. **Class profile and traceability tables:** Save `chd_class_profiles.csv` with class size, percentage of ECUs, top associated terms, chi-square values, and source-document coverage. Save `chd_ecu_assignments.csv` with each ECU's source-document identifier, text, preprocessing output, and final class.
+9. **Optional stability cross-classification:** If selected, rerun the analysis under a second, researcher-approved segment window or feature threshold. Cross-tabulate the first and second class assignments, report stable, unstable, and unassigned ECUs, and save `chd_stability_crossclassification.csv`. Do not describe classes as stable if this check was not run.
 
-*Important limitation to disclose:* This implementation follows the logic of the Reinert method more closely than a Ward-based approach, using divisive chi-square splitting on binary ECU segments rather than agglomerative clustering on TF-IDF document vectors. It remains an approximation because the original IRAMUTEQ segmentation algorithm and its specific chi-square variant are not fully documented in the public literature. The R package `rainette` (Barnier, 2020) is the most faithful open-source implementation available for strict methodological equivalence.
+*Important limitation to disclose:* This is a transparent **Reinert-style approximation**, not a claim of exact IRAMUTEQ equivalence. It uses binary text-segment data, correspondence-analysis-guided divisive splitting, and chi-square term association rather than Ward clustering of whole documents. Segmentation, term filtering, and stopping rules affect results. For an R-based open implementation closest to this public workflow, identify `rainette` and report its version and parameters when used.
 
 ### Step 4 — Interpretive Commentary & Deliverable
 
@@ -155,16 +155,18 @@ Do not hand the user a folder of files without context. For every analysis gener
 - **Interpretation:** [What the topic structure reveals about the discourse]
 
 ### 9b. Hierarchical Descending Classification (CHD)
-- **Dendrogram:** Saved to `chd_dendrogram.png`
-- **Selected K classes:** [K]
+- **Split-history tree:** Saved to `chd_split_history.png`
+- **Requested and obtained class count:** [Requested K / final K, with stopping reason if lower]
+- **Segmentation and feature thresholds:** [Word-token setting, minimum segment size, preprocessing, and feature-selection settings]
 - **Class profiles:**
 
-| Class | % Segments | Top 10 Terms (by chi-square) |
-|---|---|---|
-| Class 1 | [%] | term1, term2, ... |
+| Class | % ECUs | Top 10 Terms (chi-square) | Source-document coverage |
+|---|---|---|---|
+| Class 1 | [%] | term1, term2, ... | [N documents / %] |
 
-- **Interpretation:** [What the lexical classes reveal about the discourse structure]
-- **Methodological note:** This is an approximation of the Reinert method. Results are structurally comparable to IRAMUTEQ output but not identical.
+- **Traceability outputs:** `chd_class_profiles.csv`, `chd_ecu_assignments.csv`, and `chd_stability_crossclassification.csv` when stability checking is run.
+- **Interpretation:** [Describe only the observed lexical associations and class distribution. Do not label a class as a theoretical theme without researcher interpretation.]
+- **Methodological note:** This is a Reinert-style approximation using binary text segments, correspondence analysis, and divisive chi-square classification. It is not identical to IRAMUTEQ. State whether a stability check was run.
 ```
 
 ## Next Steps in Pipeline

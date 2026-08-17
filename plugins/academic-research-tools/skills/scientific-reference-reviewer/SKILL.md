@@ -1,6 +1,6 @@
 ---
 name: scientific-reference-reviewer
-description: Build a rigorous, auditable evidence base for one specific scientific/technical claim — strict source tiering, exact-location excerpt anchors, no final synthesized conclusion. Use when someone wants to verify a specific claim, gather evidence for a technical assertion before citing it, audit existing references in a draft, or check whether a thesis/paper/report claim is actually backed by peer-reviewed literature. Trigger on "scientific evidence for," "verificar claim," "revisão de literatura," "buscar fonte peer-reviewed," "sustentar com artigo," "find evidence for," "peer-reviewed source for," and similar — especially in environmental engineering, adsorption, biosorbents, or water/wastewater treatment. Stricter and slower than `verified-paper-search` — use this skill for "prove this exact sentence," that one for "find me papers on this topic."
+description: Build an auditable evidence base for one specific scientific or technical claim. Uses strict source tiering, exact-location excerpts, publication-status checks for retractions and post-publication updates, and bounded citation-context checks. It produces no final synthesized conclusion. Use it to verify a claim, audit citations in a draft, or determine whether a cited source has direct peer-reviewed support.
 ---
 
 # 🌐 LANGUAGE RULE
@@ -54,26 +54,50 @@ If the full text is behind a paywall:
 - Give enough metadata for the person to retrieve it themselves immediately.
 - If the abstract/metadata strongly suggests relevance, you can cite it for triage purposes only, but mark explicitly that the full text still needs to be checked before the claim can be considered supported.
 
-### 3. Classify and excerpt
-For every source used, follow `references/source_tiers_and_excerpt_rules.md`: assign the tier, pull the location-anchored excerpt (not a long quote) from an allowed section, and write the full citation.
+### 3. Check publication status before using a source as evidence
 
-### 4. Present sources ordered by tier, best first
+Before assigning a source to a tier or relying on its results, check its post-publication status. For DOI-bearing works, inspect the DOI metadata and available Crossref Retraction Watch information, then consult the publisher landing page if the status is unclear. Crossref's Retraction Watch data include retractions and may include corrections, expressions of concern, and reinstatements, but coverage of non-retraction updates is less complete. Do not rely on one database alone when a status signal conflicts.
+
+Use one of the following labels and record the source and date of the check:
+
+| Status label | Required handling |
+|---|---|
+| **Retracted** | Do not use the paper to support the claim. Report the retraction notice and reason if available. |
+| **Expression of concern** | Do not use as unqualified support. Report the status and ask the researcher whether the source should remain in the evidence register. |
+| **Corrected** | Locate the correction and determine whether it affects the specific claim. Cite the corrected record or qualify the support. |
+| **Reinstated** | Report the reinstatement and the underlying sequence of notices. Do not simplify it to "unproblematic." |
+| **No update found in checked sources** | Report exactly this. It is not proof that no post-publication issue exists. |
+| **Status unknown** | Do not infer safety. State which check could not be completed. |
+
+### 4. Classify and excerpt
+For every source used, follow `references/source_tiers_and_excerpt_rules.md`: assign the tier, pull the location-anchored excerpt (not a long quote) from an allowed section, and write the full citation. A retracted source cannot receive a supporting tier.
+
+### 5. Perform a bounded citation-context check when it helps
+
+For a central, disputed, unusually influential, or potentially outdated source, attempt a **citation-context sample** after the publication-status check. This is not a consensus analysis.
+
+- Identify two or three accessible papers that cite the source. Use OpenAlex or another scholarly index only to find candidates, then inspect the actual full-text passage that contains the citation when it is accessible.
+- Classify each accessible citing passage as **supportive use**, **critical use**, **background use**, **methodological use**, or **unclear**. Quote or excerpt the local context and preserve its location.
+- Report the sample size, access limitations, and selection route. Do not generalize from two or three citations to field-wide agreement.
+- If citing passages are unavailable, state: "Citation context unavailable from accessible full text." Do not substitute citation counts for citation context.
+
+### 6. Present sources ordered by tier, best first
 For each source:
 - Tier + type
 - Full citation
 - Anchor excerpt + paraphrase + exact location (per the reference file's format)
 - A brief, honest assessment of how strong/relevant this is for *this specific claim* — not just "this paper exists and is about a related topic"
 
-### 5. If nothing high-tier turns up, say so
+### 7. If nothing high-tier turns up, say so
 Declare the evidence gap explicitly rather than stretching a `weak_context_only` source to look like real support. Suggest concrete next steps: refined search terms, specific databases worth trying, or known reviews that might cover the gap.
 
-### 6. Cross-check in parallel where it helps
+### 8. Cross-check in parallel where it helps
 If you're running multiple searches or tools at once, cross-validate findings against each other before presenting them — agreement across independent sources is itself evidence; a single hit that nothing else corroborates deserves more scrutiny, not less.
 
 ## Output structure for a verified claim
 
 ```
-Claim → Evidence found (tier X) → Anchor excerpt + location → Full citation → Gaps (if any)
+Claim → Publication status → Evidence found (tier X) → Anchor excerpt + location → Citation-context sample (if performed) → Full citation → Gaps (if any)
 ```
 
 ## Domain rigor
@@ -82,10 +106,12 @@ For this user's typical domains — environmental engineering, adsorption, bioso
 
 ## Using this alongside other skills
 
-- `journal-quality-check` — consult this when a source's venue credibility actually matters to how much weight a `peer_reviewed_primary`/`peer_reviewed_review` tier deserves (e.g., the venue is unfamiliar or its standing is in question for this specific claim).
+- `journal-quality-check` — consult this when a source's venue credibility matters to the researcher's interpretation. Its output may include a documented **possible predatory journal** warning pattern. Treat that as context requiring review, not proof that a specific paper is false or unusable.
+- `deep-academic-synthesis` — pass this skill's publication-status fields and evidence anchors into the synthesis Transparency Log. The synthesis must report only statuses that this skill actually checked.
 - `verified-paper-search` — use that skill instead (or first) when the task is finding candidate papers on a topic broadly; come back to this skill once there's a specific claim to validate against a specific candidate source.
 
 ## Additional guidelines
 - Respond in the language of the user's query (Portuguese or English).
-- Maintain full traceability: every supported statement must point to an anchor excerpt + citation + tier.
-- Never synthesize a final conclusion or chapter at this stage — present the evidence base neutrally for audit and human decision-making.
+- Maintain full traceability: every supported statement must point to an anchor excerpt, citation, tier, and publication-status record.
+- Never synthesize a final conclusion or chapter at this stage. Present the evidence base neutrally for audit and human decision-making.
+- **Source basis:** Crossref's official Retraction Watch documentation explains that the database is distributed through Crossref metadata and is updated on working days. Record the check date because status can change. https://www.crossref.org/documentation/retrieve-metadata/retraction-watch/

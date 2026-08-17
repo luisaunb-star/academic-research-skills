@@ -1,6 +1,6 @@
 ---
 name: study-quality-assessment
-description: Appraise the methodological quality of academic papers using full-text batch extraction and field-calibrated checklists (CASP, JBI, MMAT). Produces individual appraisal records and a consolidated quality matrix for the full corpus.
+description: Appraise the methodological and reporting quality of academic papers using full-text batch extraction and field-calibrated CASP, JBI, MMAT, and QuADS checklists. Produces individual appraisal records and a consolidated quality matrix for the full corpus.
 ---
 
 # 🌐 LANGUAGE RULE
@@ -44,7 +44,8 @@ Before reading any paper, collect the following information:
 1. Confirm that the full text is available for each paper. If not, mark the paper "Excluded (E5: Inaccessible)" and remove it from the appraisal list.
 2. For each remaining paper, identify the study design from the abstract or title page. If the design is ambiguous, read the Methods section first (in a single targeted batch) to confirm.
 3. Route each paper to the correct checklist using the instrument routing table below.
-4. Present the list of papers, their identified designs, and their assigned checklists to the user. Ask for confirmation before proceeding.
+4. For mixed, multi-method, design-science, or otherwise heterogeneous papers, ask the researcher whether the appraisal purpose requires **MMAT** or **QuADS** before assigning an instrument. Do not treat the two instruments as interchangeable.
+5. Present the list of papers, their identified designs, the proposed appraisal purpose, and assigned checklists to the user. Ask for confirmation before proceeding.
 
 **Instrument Routing:**
 
@@ -55,7 +56,19 @@ Before reading any paper, collect the following information:
 | Analytical cross-sectional (exposure-outcome association) | JBI Analytical Cross-Sectional |
 | Quasi-experimental (non-randomized intervention, pre-post, time-series) | JBI Quasi-Experimental |
 | Systematic or scoping review | CASP Systematic Review |
-| Mixed methods, design science, or unclassified | MMAT 2018 |
+| Explicit mixed-methods design with qualitative, quantitative, and integration components that require design-specific appraisal | MMAT 2018 |
+| Diverse multi- or mixed-method corpus where the researcher needs one cross-design appraisal of methodological and reporting quality | QuADS 2021 |
+| Design science or unclassified study | Ask the researcher whether MMAT's integration criteria or QuADS's cross-design reporting profile better fits the appraisal purpose. Record the limitation of either choice. |
+
+---
+
+### QuADS calibration before corpus-wide appraisal
+
+If **QuADS** is selected, explain that it uses a 0 to 3 scale and requires reviewer judgment in relation to the particular body of literature. It has **no validated overall cut-off** for high or low quality. Do not use a total score to exclude a paper automatically.
+
+- In a multi-researcher appraisal, ask reviewers to independently score the same 3 to 5 included papers, discuss disagreements, and agree a written application note before scoring the remaining corpus.
+- In a one-researcher appraisal, select 3 to 5 varied papers as a calibration subset. Present the provisional criterion-by-criterion rationale to the researcher before continuing. This checks that the proposed interpretations fit the field and review question.
+- For every QuADS judgment, retain the direct evidence, section or page location, score, and the field-specific application note when one was needed.
 
 ---
 
@@ -125,8 +138,10 @@ Checklist Used: [e.g., CASP Qualitative]
 | 1 | [Full item text] | [Yes / No / Can't Tell / N/A / Unclear] | "[Direct quote from paper]" (Section, page) |
 | 2 | ... | ... | ... |
 
-Overall Assessment: [Methodologically sound / Sound with limitations / Fatally flawed]
-Inclusion Decision: [Include / Exclude (Quality) / Uncertain (flag for user decision)]
+Overall Assessment: [Instrument-specific narrative profile, with strengths, limitations, and any field-calibration note]
+Inclusion Decision: [Researcher decision only. Do not automatically exclude a study from the review on the basis of a checklist total.]
+
+**For QuADS records:** Report the 13 criterion scores and a criterion-level narrative profile. You may calculate a descriptive total out of 39 only if the researcher requests it, but state that QuADS has no validated high/low-quality cut-off and that the total must not determine inclusion automatically.
 
 ---
 
@@ -134,17 +149,19 @@ Inclusion Decision: [Include / Exclude (Quality) / Uncertain (flag for user deci
 
 After all individual appraisal records are complete, produce a consolidated matrix. This is the deliverable intended for inclusion in the Methods section of a systematic or integrative review manuscript.
 
-**Matrix format:**
+**Matrix format:** Use instrument-specific item names. Do not force different checklists into an artificial 10-item grid.
 
-| Paper (Author, Year) | Design | Checklist | Item 1 | Item 2 | Item 3 | Item 4 | Item 5 | Item 6 | Item 7 | Item 8 | Item 9 | Item 10 | Overall | Decision |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| [Author, Year] | [Design] | [Instrument] | Y/N/CT/NA | ... | ... | ... | ... | ... | ... | ... | ... | ... | Sound / Limitations / Flawed | Include / Exclude |
+| Paper (Author, Year) | Design | Checklist | Criterion / Item | Judgment or Score | Evidence Location | Field-Calibration Note | Researcher Decision |
+|---|---|---|---|---|---|---|---|
+| [Author, Year] | [Design] | [Instrument] | [Full item label] | Y/N/CT/NA/U or 0–3 for QuADS | [Direct quote, section, page] | [If used] | [Researcher decision] |
 
-**Legend:** Y = Yes, N = No, CT = Can't Tell, NA = Not Applicable, U = Unclear (protocol papers only)
+Also provide a paper-level summary table with one row per paper and an instrument-specific profile. For QuADS, include Criterion 1 through Criterion 13, any researcher-requested descriptive total out of 39, and a statement that no cut-off was applied.
 
-After presenting the matrix, export it as a CSV file saved to `/home/ubuntu/articles/quality_appraisal_matrix.csv` and inform the user that it can be opened directly in Excel or Google Sheets.
+**Legend:** Y = Yes, N = No, CT = Can't Tell, NA = Not Applicable, U = Unclear (protocol papers only). QuADS uses 0 = not reported or absent, 1 = minimal or broad evidence, 2 = partial or adequate evidence, and 3 = detailed and well-supported evidence.
 
-Also provide a brief narrative summary (3 to 5 sentences) describing the overall quality profile of the corpus: what proportion of papers were rated sound, what the most common methodological limitations were, and whether any papers were excluded at this stage.
+After presenting the matrices, export the long-format evidence matrix as `/home/ubuntu/articles/quality_appraisal_matrix.csv` and the paper-level summary as `/home/ubuntu/articles/quality_appraisal_summary.csv`. Inform the user that both can be opened directly in Excel or Google Sheets.
+
+Provide a brief narrative summary describing patterns by criterion, the main methodological or reporting limitations, and the role of any field-specific calibration. Do not state that papers were excluded by checklist score unless the researcher explicitly made and documented that decision.
 
 ---
 
@@ -283,4 +300,30 @@ MM3. Are the outputs of the integration of qualitative and quantitative componen
 MM4. Are divergences and inconsistencies between quantitative and qualitative results adequately addressed? (Check: explicit handling of divergences)
 MM5. Do the different components of the study adhere to the quality criteria of each tradition of the methods involved? (Check: rate the relevant qualitative and quantitative component criteria as well)
 
-**Key guidance for Design Science Research:** No standard checklist fully covers DSR. Apply the Quant-NR criteria as the closest proxy and add an explicit note that a specialized framework such as FEDS (Venable, Pries-Heje, and Baskerville, 2016) is more appropriate for formal DSR evaluation.
+**Key guidance for Design Science Research:** No standard checklist fully covers DSR. Do not route every DSR paper automatically to MMAT. Ask whether the study actually integrates qualitative and quantitative components, in which case MMAT may be appropriate, or whether a cross-design appraisal of methodological and reporting quality is needed, in which case QuADS may be more informative. In either case, add an explicit note that a specialized framework such as FEDS (Venable, Pries-Heje, and Baskerville, 2016) may be more appropriate for formal DSR evaluation.
+
+---
+
+## Checklist 7: QuADS 2021 (Quality Assessment for Diverse Studies)
+
+**Use when:** The researcher needs a single criterion-based appraisal of methodological and reporting quality across a diverse multi- or mixed-method corpus. Do not use QuADS as a mechanical substitute for MMAT when explicit mixed-methods integration is the central appraisal question.
+
+**Response scale:** 0 = no mention or absent, 1 = minimal or broad evidence, 2 = partial or adequate evidence, 3 = detailed and well-supported evidence. Apply the official score descriptors for each criterion. Do not use a total score as a high/low-quality cut-off or as an automatic exclusion rule.
+
+1. **Theoretical or conceptual underpinning to the research.** Check whether concepts or theories are named and whether they actually inform the design, materials, or outcomes. Score 0 for no mention, 1 for broad reference, 2 for identified concepts with some link to the work, and 3 for explicit application throughout the study.
+2. **Statement of research aim/s.** Check whether the main body has an explicit, detailed aim statement. Score 0 for no stated aim, 1 for an implied aim, 2 for an aim limited to the abstract or lacking detail, and 3 for a detailed main-text statement.
+3. **Clear description of research setting and target population.** Check the specific setting and target population. Score 0 for no description, 1 for only a broad research area, 2 for a setting description with missing detail, and 3 for a specific setting and target population.
+4. **The study design is appropriate to address the stated research aim/s.** Compare the stated aims and design. Score 0 when no aim is stated or the design is unsuitable, 1 when only some aspects can be addressed, 2 when the design can answer the aim but a stronger alternative is apparent, and 3 when the design appears the most suitable available approach.
+5. **Appropriate sampling to address the research aim/s.** Check how sample, cases, or sites were selected and justified. Score 0 for no sampling approach, 1 for basic consideration of sample characteristics, 2 for consideration linked to the aims, and 3 for detailed sample-size, iterative-sampling, or case-selection justification linked to the aims.
+6. **Rationale for choice of data collection tool/s.** Check why each tool was selected. Score 0 for no rationale, 1 for minimal explanation such as availability, 2 for a basic rationale such as prior similar use, and 3 for a detailed rationale linked to study aims, co-design, target population, or tool quality.
+7. **The format and content of data collection tool is appropriate to address the stated research aim/s.** Check whether the instrument format and content can elicit the required data. Score 0 when tools or aims are not described, 1 for superficial fit, 2 for broad fit with a plausible need for refinement, and 3 when the tools allow detailed data on all relevant aspects of the aim.
+8. **Description of data collection procedure.** Check when, where, and how collection occurred. Score 0 for no procedure, 1 for a brief outline, 2 for stages described with material gaps, and 3 for sufficiently detailed procedures that another researcher could follow them.
+9. **Recruitment data provided.** Check numbers approached, invited, recruited, completed, and attrition where relevant. Score 0 for no recruitment data, 1 for minimal figures, 2 for incomplete but meaningful figures, and 3 for a full recruitment account with attrition explained.
+10. **Justification for analytic method selected.** Check why the analytic approach fits the study. Score 0 for no rationale, 1 for a minimal rationale, 2 for basic reference to prior similar work, and 3 for detailed justification linked to the aims or the method's strengths.
+11. **The method of analysis was appropriate to answer the research aim/s.** Compare the analysis with the aims. Score 0 for no reported analysis, 1 for only basic or broad fit, 2 for adequate fit with a stronger plausible alternative, and 3 when the analysis appears the most suitable approach for answering the aims in detail.
+12. **Evidence that research stakeholders have been considered in research design or conduct.** Check for target-population, advisory-group, pilot, or stakeholder input. Score 0 for no mention, 1 for limited consideration without planning-stage involvement, 2 for input that influenced design or conduct, and 3 for substantial identifiable consultation throughout planning or preliminary work.
+13. **Strengths and limitations critically discussed.** Check whether the discussion addresses design, methods, tools, sample, and analysis. Score 0 for no discussion, 1 for very limited discussion, 2 for some key strengths and weaknesses with omissions, and 3 for a thorough critical discussion across the study.
+
+**QuADS team guidance:** Before corpus-wide scoring, review teams should independently apply QuADS to the same 3 to 5 papers, discuss differences, and document their shared application rules. The tool's 13 criteria are unweighted. Report patterns across individual criteria narratively rather than treating a summary score as a decision rule.
+
+**Source:** Harrison, Jones, Gardner, and Lawton (2021), official QuADS Criteria and User Guide v1.0, supplementary files to https://doi.org/10.1186/s12913-021-06122-y.

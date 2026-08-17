@@ -1,6 +1,6 @@
 ---
 name: verified-paper-search
-description: Find and verify academic papers for a topic or specific claim via the OpenAlex API, minimizing citation hallucination through RAG principles. Enforces a structured review protocol, researcher-approved Boolean search strategy, user-controlled large-corpus consultation at 150 and 500 records, preliminary topical triage that does not replace screening, DOI spot-checking, and auditable OpenAlex candidate-corpus export. Journal quality assessment is handled by `journal-quality-check`, final inclusion/exclusion by `corpus-screening`, and deep synthesis by `deep-academic-synthesis`.
+description: Retrieve and verify academic-paper metadata for a topic through the OpenAlex API. Enforces a researcher-approved Boolean strategy, optional PRISMA or SPAR-4-SLR protocol structure, researcher-controlled corpus-size consultation, preliminary triage that never replaces screening, DOI spot-checking, and auditable candidate-corpus export. Optional snowballing is restricted to researcher-approved scoping or realist-informed reviews after initial screening. Journal quality, final eligibility, appraisal, bibliometrics, and synthesis occur in separate skills.
 ---
 
 # 🌐 LANGUAGE RULE
@@ -25,11 +25,11 @@ Wait for the user's answer and use that variant consistently throughout the sess
 
 ---
 
-# Verified Paper Search & Integrative Synthesis
+# Verified Paper Search & Candidate-Corpus Retrieval
 
 ## The Problem This Solves
 
-Language models are fluent enough to generate citations that look completely real for papers that were never written. This skill mitigates citation hallucination by making every step explicit, checkable, and grounded in retrieved evidence (Retrieval-Augmented Generation / RAG principles). Furthermore, it upgrades a simple "list of papers" into a structured **systematic mapping and realist-informed synthesis**, ensuring the final deliverable is methodologically rigorous, transparent, and aligned with academic review standards.
+Language models can generate citations that look real for papers that were never written. This skill mitigates citation hallucination by making each search action explicit, checkable, and grounded in retrieved metadata. It produces an auditable **candidate corpus**, not a final included corpus and not a synthesis. Journal quality assessment, screening, methodological appraisal, bibliometrics, and deep synthesis occur in separate downstream skills.
 
 ## Workflow
 
@@ -66,6 +66,22 @@ Present the following options to the user, grounded in academic literature (e.g.
 
 **🛑 STOP: Present this typology to the user. Do not proceed until the user explicitly selects a review type. The selected type will govern the rules for the Draft Review Protocol in Step 2.**
 
+### Step 1B — Select Review-Conduct and Reporting Protocol (User Selection Required)
+
+After the researcher selects a review typology, explain that the typology answers **what kind of review** will be conducted, while the protocol structures **how its process and results will be recorded**. They are complementary choices, not alternatives.
+
+Ask the researcher to select one of the following:
+
+| Option | Use in this pipeline | When to choose it |
+|---|---|---|
+| **Default audit structure** | Use the skill's existing protocol, query, corpus, and decision records. | Exploratory, critical, or bespoke reviews without a selected reporting framework. |
+| **PRISMA 2020 and PRISMA-S** | Preserve query, source, deduplication, screening, and exclusion counts required for PRISMA-oriented reporting. | Systematic or scoping reviews that require conventional evidence-synthesis reporting. |
+| **SPAR-4-SLR** | Structure records under Assembling, Arranging, and Assessing. Map Identification and Acquisition here, Organization across corpus records, Purification to `corpus-screening`, and Evaluation and Reporting to downstream skills. | Social-science, management, or information-systems reviews that require transparent conceptual organization and agenda-oriented reporting. |
+
+Explain that **SPAR-4-SLR does not replace the selected review typology**. If the researcher chooses PRISMA 2020, do not create a flow diagram yet. Preserve the required counts here and generate the diagram only after `corpus-screening` supplies final screening counts. If the researcher chooses SPAR-4-SLR, do not claim that its later Evaluation or Reporting stages have been completed at search stage.
+
+**🛑 STOP: Record the selected reporting protocol and wait for explicit confirmation before drafting the review protocol.**
+
 ### Step 2 — Diagnose Risk & Draft Review Protocol (User Approval Required)
 
 Before searching, you must establish a rigorous framework for the review. Do not jump straight to executing searches.
@@ -80,6 +96,7 @@ Based on the user's topic and the **selected review typology** from Step 1, draf
 The draft protocol must align with the chosen typology and include:
 - **Review Purpose & Question:** Clarified using PICOTS (Population, Intervention, Context, Outcome, Time, Study design) or SPIDER framework.
 - **Review Design:** Tailored to the selected typology (e.g., if Scoping Review, focus on mapping; if Realist-Informed Synthesis, focus on CMO configurations).
+- **Reporting / Conduct Protocol:** State the researcher-selected option and its current-stage obligations. For PRISMA 2020 and PRISMA-S, record search and record-flow fields. For SPAR-4-SLR, state the Identification and Acquisition decisions and the planned Organization, Purification, Evaluation, and Reporting responsibilities across downstream skills.
 - **Corpus Boundary:** Databases to search, date ranges, language restrictions.
 - **Unit of Analysis:** The paper, or specific claims/passages within the paper.
 - **Search-Stage Extraction Fields:** Define metadata and audit fields only (e.g., title, authors, year, venue, DOI, abstract availability, document type, query source, and preliminary triage status). Do not define theoretical, methodological, evidence-strength, or synthesis fields here. Those belong to downstream stages after researcher-controlled screening.
@@ -150,14 +167,21 @@ Classify each record using title, abstract, and metadata only:
 
 **3. DOI metadata spot-check:** If at least three records contain DOIs, randomly select 3 to 5 records across the retained corpus and resolve each DOI through `https://doi.org/{doi}`. If a DOI fails to resolve, record "DOI unverified" in the mapping and report it to the researcher. A failed DOI check is a metadata flag, not a basis for exclusion at this stage.
 
-**4. Snowballing is out of scope for this skill.** Forward snowballing (finding papers that cite the candidate corpus) and backward snowballing (checking reference lists) are not part of this search step. If the chosen review typology requires snowballing, list it as a limitation in the deliverable and conduct it as a separate pass after `corpus-screening`.
+**4. Optional snowballing, limited to Scoping Review and Realist-Informed Synthesis:** Snowballing is available only when the researcher selected **Scoping Review** or **Realist-Informed Synthesis** in Step 1 and explicitly approves it in the draft protocol. It must begin **after** `corpus-screening` has produced a researcher-confirmed initial seed set. It is not an automatic expansion of the pre-screening search.
+
+- **Backward snowballing:** Retrieve works referenced by each seed paper through its OpenAlex `referenced_works` metadata. Where a reference cannot be recovered from OpenAlex, record that limitation. Do not infer or fabricate reference metadata.
+- **Forward snowballing:** Retrieve works that cite each seed paper using OpenAlex citation metadata. Record the retrieval date because citation links change over time.
+- Deduplicate snowballed records against `openalex_all_retrieved.json` and against prior snowballing rounds. Save new records to `/home/ubuntu/articles/snowballing_candidate_register.csv` with Seed_Paper, Direction, Iteration, OpenAlex_ID, Title, DOI, Retrieval_Date, and Duplicate_Status.
+- Send every newly discovered non-duplicate record to `corpus-screening`. Do not include it automatically. The researcher controls all eligibility decisions.
+- At the end of each approved iteration, report the number retrieved, duplicates removed, records sent to screening, records screened as Include, and the researcher's decision to continue or stop. **Never declare theoretical saturation autonomously.**
+- For all other review typologies, list snowballing as not selected, unless the researcher explicitly requests a separate methodologically justified process.
 
 **5. Audit-preserving pipeline export (CRITICAL):** Save both of the following files:
 
 - `/home/ubuntu/articles/openalex_all_retrieved.json` — every deduplicated record returned by the accepted search strategy, including records the researcher approved for obvious-exclusion removal.
 - `/home/ubuntu/articles/openalex_candidate_corpus.json` — every record retained after any researcher-approved obvious exclusions. This is the search-stage candidate corpus, not a final included corpus.
 
-Also save `/home/ubuntu/articles/search_triage_register.csv`, with one row per deduplicated record and the following fields: Title, Authors, Year, Venue, DOI, Query_Source, Triage_Status, Proposed_Criterion, Direct_Evidence, Researcher_Decision, and DOI_Verification_Status.
+Also save `/home/ubuntu/articles/search_triage_register.csv`, with one row per deduplicated record and the following fields: Title, Authors, Year, Venue, DOI, Query_Source, Triage_Status, Proposed_Criterion, Direct_Evidence, Researcher_Decision, and DOI_Verification_Status. If the approved protocol includes snowballing, also save `/home/ubuntu/articles/snowballing_candidate_register.csv` after each completed snowballing iteration.
 
 `corpus-screening` uses this candidate corpus to make the researcher-controlled inclusion and exclusion decisions. After screening, create the final analysis corpus for `bibliometric-scientometric-analysis` by retaining only papers that the researcher marked Include.
 
@@ -171,6 +195,7 @@ Report the following:
 - The deduplicated total, the number proposed as clearly out of scope, the number of removals approved by the researcher, and the final candidate-corpus total.
 - The year range, document-type distribution, language distribution when available, and the number of records with an abstract and DOI.
 - The number of DOI records spot-checked and any DOI metadata flags.
+- If snowballing was selected and completed, each iteration's retrieved, duplicate, screening-candidate, included, and researcher stop/continue counts. If it was not run, state why.
 - A short statement that the output is a search-stage candidate corpus and that no final screening decision, journal-quality judgment, methodological quality appraisal, thematic synthesis, or full-text analysis has been performed.
 
 Do **not** produce per-paper summaries, theme groupings, evidence-strength ratings, Context-Mechanism-Outcome configurations, literature gaps, conceptual claims, or flowing academic prose. Those activities belong to later skills after the researcher has selected the corpus.
@@ -186,6 +211,8 @@ Default to a **Markdown file** unless the user requests a Word document (use the
 - **Review Question:** [PICOTS/SPIDER]
 - **Scope and Boundaries:** [OpenAlex, dates, languages, document-type rules]
 - **Review Typology:** [The review type selected by the researcher]
+- **Reporting / Conduct Protocol:** [Default audit structure / PRISMA 2020 and PRISMA-S / SPAR-4-SLR]
+- **Protocol Mapping:** [For SPAR-4-SLR, identify this deliverable as Assembling: Identification and Acquisition, with Organization begun. For PRISMA, identify counts preserved for the later flow diagram.]
 - **Downstream Plan:** [`journal-quality-check` → `corpus-screening` → `study-quality-assessment` where full texts are available]
 
 ## 2. Search Strategy and Execution
@@ -194,6 +221,7 @@ Default to a **Markdown file** unless the user requests a Word document (use the
 - **Deduplication:** [Number removed and deduplicated total]
 - **Corpus-Size Decision:** [Researcher decision after the 150/500 consultation, if applicable]
 - **Approved Refinements or Metadata Filters:** [Exact changes, or "None"]
+- **Snowballing Plan and Status:** [Not selected / Approved for Scoping or Realist-Informed Review after screening / Completed iterations with counts]
 
 ## 3. Candidate-Corpus Register
 *This is not a final included corpus. It records preliminary topical triage only. Journal quality is assessed separately in `journal-quality-check`; final title/abstract inclusion and exclusion decisions are made by the researcher in `corpus-screening`.*
@@ -215,17 +243,19 @@ Default to a **Markdown file** unless the user requests a Word document (use the
 - **Year range, document types, and languages:** [Metadata profile]
 - **Abstract and DOI coverage:** [Counts]
 - **DOI spot-check:** [Number checked and metadata flags]
+- **Snowballing:** [Status, iteration counts, or not selected]
 
-*No final screening decision, journal-quality judgment, methodological quality appraisal, full-text analysis, thematic synthesis, evidence-strength rating, or literature-gap analysis has been performed at this stage.*
+*No final screening decision, journal-quality judgment, methodological quality appraisal, full-text analysis, thematic synthesis, evidence-strength rating, or literature-gap analysis has been performed at this stage. A PRISMA diagram is generated after screening, not at this stage. SPAR-4-SLR Purification, Evaluation, and Reporting remain downstream.*
 
 ## 5. Notes and Limitations
-- [Any search coverage constraints, unresolved metadata, and any required snowballing pass]
+- [Any search coverage constraints, unresolved metadata, snowballing status, and reporting-protocol limitations]
 - *The output is a search-stage candidate corpus. The researcher must use `corpus-screening` to make final inclusion and exclusion decisions before any downstream analysis.*
 ```
 
 ## Next Steps in Pipeline
 - **`journal-quality-check`** — Assess journal/source credibility separately. Do not retroactively treat its output as a substitute for researcher-led eligibility screening.
-- **`corpus-screening`** — Make final title/abstract inclusion and exclusion decisions using the candidate corpus and the researcher-approved criteria. This is the required next step before analysis.
+- **`corpus-screening`** — Make final title/abstract inclusion and exclusion decisions using the candidate corpus and the researcher-approved criteria. This is the required next step before analysis. It produces SPAR-4-SLR Purification outputs when SPAR is selected and PRISMA flow-diagram counts when PRISMA is selected.
+- **Optional return to `verified-paper-search` for snowballing** — Only after a researcher-confirmed seed set exists, only for Scoping Review or Realist-Informed Synthesis, and only when the researcher approved snowballing in the protocol.
 - **`study-quality-assessment`** — After screening and only when full texts are available, appraise the methodological quality of the researcher-included papers.
 - **`bibliometric-scientometric-analysis`** — After final screening, generate visual science mapping and related analyses from the researcher-included corpus.
 - **`deep-academic-synthesis`** — After final screening and when full texts are available, move to researcher-controlled, section-by-section synthesis.
