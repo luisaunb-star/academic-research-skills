@@ -1,7 +1,7 @@
 {
   "name": "academic-research-tools",
   "description": "Hallucination-resistant academic literature search, journal credibility checking, and claim-level reference verification.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "Luisa Veras de Sandes-Guimarães"
   },

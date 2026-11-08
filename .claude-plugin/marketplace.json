@@ -9,7 +9,7 @@
       "name": "academic-research-tools",
       "source": "./plugins/academic-research-tools",
       "description": "Verified paper search, journal quality check, and scientific reference reviewer skills, bundled together.",
-      "version": "1.0.0"
+      "version": "1.0.1"
     }
   ]
 }
